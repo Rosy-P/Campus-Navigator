@@ -1,0 +1,24 @@
+{
+  "campusCenter": [12.9175, 80.1378],
+  "totalLandmarks": 25,
+  "classrooms": [
+    {"name": "A-Block Room 101", "lat": 12.9181, "lng": 80.1385, "floor": "1"},
+    {"name": "CS Lab 201", "lat": 12.9186, "lng": 80.1396, "floor": "2"}
+  ],
+  "departments": [
+    {"name": "Computer Science Dept", "lat": 12.9185, "lng": 80.1395, "floor": "ground"},
+    {"name": "Commerce Block", "lat": 12.9228986, "lng": 80.1196958, "floor": "2"}
+  ],
+  "facilities": [
+    {"name": "Main Gate", "lat": 12.9172, "lng": 80.1370, "floor": "ground"},
+    {"name": "Library", "lat": 12.9182, "lng": 80.1390, "floor": "ground"},
+    {"name": "Thomas Hall", "lat": 12.9221401, "lng": 80.1199855, "floor": "ground"},
+    {"name": "IOB ATM", "lat": 12.921616, "lng": 80.119758, "floor": "ground"},
+    {"name": "Boxing Ring", "lat": 12.920936, "lng": 80.121124, "floor": "ground"},
+    {"name": "Center for Media Studies", "lat": 12.920227, "lng": 80.120561, "floor": "ground"},
+    {"name": "Miller Memorial Library", "lat": 12.920080, "lng": 80.120353, "floor": "ground"},
+    {"name": "Macphails Arts Center", "lat": 12.919368, "lng": 80.121757, "floor": "ground"},
+    {"name": "MCC Stone Bench", "lat": 12.921065, "lng": 80.120926, "floor": "ground"},
+    {"name": "Anderson Hall", "lat": 12.921221, "lng": 80.122281, "floor": "2"}
+  ]
+}

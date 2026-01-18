@@ -1,0 +1,250 @@
+:root {
+    --primary-color: #2563eb;
+    --primary-hover: #1d4ed8;
+    --secondary-color: #64748b;
+    --background-color: #f8fafc;
+    --surface-color: #ffffff;
+    --text-primary: #0f172a;
+    --text-secondary: #64748b;
+    --border-color: #e2e8f0;
+    --success-color: #10b981;
+    --warning-color: #f59e0b;
+    --danger-color: #ef4444;
+
+    --sidebar-width: 260px;
+    --header-height: 70px;
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    --radius-md: 0.75rem;
+    --radius-lg: 1rem;
+}
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: "Mulish", sans-serif;
+}
+
+body {
+  background: #f5f7fb;
+}
+#splash {
+  position: fixed;
+  inset: 0;
+   font-size: 3rem; /* Starting size */
+    font-weight: bold;
+    animation: zoomIn 4s forwards; /* 5s duration */
+    color: #333;
+    opacity: 0.5;
+  background: #ffffff;
+  z-index: 9999;
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+}
+#splash .logo i{
+  font-size: 7rem;
+  color: blue;
+}
+@keyframes zoomIn {
+    0% {
+      transform: scale(0.5); /* Start slightly bigger */
+      opacity: 0.5;
+    }
+    100% {
+      transform: scale(1); /* End at normal size */
+      opacity: 1; /* Optional: keep visible */
+    }
+  }
+.hidden {
+  display: none;
+}
+
+.app-container {
+  display: flex;
+  height: 100vh;
+}
+
+/* SIDEBAR */
+.sidebar {
+  width: var(--sidebar-width);
+  background-color: rgb(229, 234, 239);
+  border-right: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  height: 100vh;
+  padding: 1.5rem;
+  z-index: 10;
+}
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 2.5rem;
+    padding-left: 0.5rem;
+}
+
+.logo-icon i{
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-hover));
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 30px;
+}
+
+.brand h1 {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: var(--text-primary);
+}
+
+.nav-menu {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+.nav-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    text-decoration: none;
+    color: var(--text-secondary);
+    border-radius: var(--radius-md);
+    transition: all 0.2s ease;
+    font-size: 17px;
+    font-weight: 700;
+}
+.nav-item:hover,
+.nav-item.active {
+    background-color: #eff6ff;
+    color: var(--primary-color);
+}
+
+.nav-item i {
+    font-size: 1.25rem;
+}
+
+nav a.emergency {
+  color: #e63946;
+}
+
+.sidebar-footer {
+  margin-top: auto;
+  padding: 15px;
+  font-size: 12px;
+}
+
+/* MAIN */
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* TOP BAR */
+.topbar {
+  background: #fff;
+  padding: 15px 25px;
+  display: flex;
+  justify-content: space-between;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.topbar h1 {
+  font-size: 20px;
+}
+
+.actions button {
+  border: none;
+  background: #eef3ff;
+  padding: 10px;
+  border-radius: 8px;
+  margin-right: 10px;
+  cursor: pointer;
+}
+
+/* CONTENT */
+.content {
+  display: flex;
+  flex: 1;
+}
+
+/* MAP */
+#map {
+  flex: 1;
+}
+
+/* INFO PANEL */
+.info-panel {
+  width: 320px;
+  background: #fff;
+  border-left: 1px solid #e5e7eb;
+  padding: 15px;
+}
+
+.info-panel input {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 15px;
+}
+
+.tabs button {
+  padding: 8px 12px;
+  margin-right: 6px;
+  border-radius: 6px;
+  border: none;
+}
+
+.tabs .active {
+  background: #2f6bff;
+  color: #fff;
+}
+
+.location-card img {
+  width: 100%;
+  border-radius: 10px;
+  margin-bottom: 10px;
+}
+
+.navigate {
+  width: 100%;
+  background: #2f6bff;
+  color: white;
+  border: none;
+  padding: 12px;
+  border-radius: 8px;
+  margin-top: 10px;
+}
+
+.legend {
+  margin-top: 20px;
+  font-size: 13px;
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  display: inline-block;
+  border-radius: 50%;
+}
+
+.blue { background: #2f6bff; }
+.green { background: #2ecc71; }
+.red { background: #e63946; }
+.yellow { background: #f4c430; }
+
+/* FOOTER */
+footer {
+  text-align: center;
+  padding: 8px;
+  font-size: 12px;
+  background: #fff;
+}

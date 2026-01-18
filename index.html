@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>CampusVoice Navigator</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+
+  <!-- Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:ital,wght@0,100..700;1,100..700&family=Mulish:ital,wght@0,200..1000;1,200..1000&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Saira+Stencil+One&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/@phosphor-icons/web"></script>
+  <!-- CSS -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<body>
+
+<!-- Splash Screen -->
+<div id="splash">
+  <div class="logo">
+                    <i class="ph-fill ph-graduation-cap" ></i>
+                </div>
+  <h1 class="app-title">MCC CAMPUS</h1>
+</div>
+
+<!-- Main App -->
+<div id="app" class="hidden">
+  <!-- Your Home / Map UI here -->
+   <div class="app-container">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="brand">
+                <div class="logo-icon">
+                    <i class="ph-fill ph-graduation-cap" ></i>
+                </div>
+                <h1>MCC CAMPUS</h1>
+            </div>
+
+    <nav class="nav-menu">
+      <a class="nav-item active"><i class="ri-map-pin-line"></i> Locations</a>
+      <a class="nav-item"><i class="ri-building-line"></i> Facilities</a>
+      <a class="nav-item"><i class="ri-calendar-event-line"></i> Events</a>
+      <a class="nav-item"><i class="ri-walk-line"></i> Tour Mode</a>
+      <a class="nav-item emergency"><i class="ri-alarm-warning-line"></i> Emergency</a>
+    </nav>
+
+    <div class="sidebar-footer">
+      
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <!-- TOP BAR -->
+    <header class="topbar">
+      <div class="title">
+        
+      </div>
+
+      <div class="actions">
+       
+      </div>
+    </header>
+
+    <!-- CONTENT -->
+    <section class="content">
+
+      <!-- MAP -->
+      <div id="map"></div>
+
+      <!-- INFO PANEL -->
+      <aside class="info-panel">
+
+        <input type="text" placeholder="Search for location..." />
+
+        <div class="tabs">
+          <button class="active">Academic</button>
+          <button>Facility</button>
+          <button>Events</button>
+        </div>
+
+        <div class="location-card">
+          <img src="https://images.unsplash.com/photo-1580587771525-78b9dba3b914" alt="">
+          <h3>SC Lab 201</h3>
+          <p>Computer Science · A Block</p>
+
+          <div class="floor">
+            <span>2nd Floor</span>
+          </div>
+
+          <button class="navigate">
+            <i class="ri-play-fill"></i> Start Navigation
+          </button>
+        </div>
+
+        <div class="legend">
+          <h4>Legend</h4>
+          <p><span class="dot blue"></span> Classroom / Lab</p>
+          <p><span class="dot green"></span> Department</p>
+          <p><span class="dot red"></span> Facility</p>
+          <p><span class="dot yellow"></span> Emergency</p>
+        </div>
+
+      </aside>
+
+    </section>
+
+    <!-- FOOTER -->
+    <footer>
+      MCC CampusVoice Navigator · Final Year Project · Rosy (CS)
+    </footer>
+
+  </main>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+</div>
+
+<script src="splash.js"></script>
+</body>
+
+
+
+</body>
+</html>

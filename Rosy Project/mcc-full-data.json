@@ -1,0 +1,525 @@
+{
+  "campusCenter": [
+    12.9175,
+    80.1378
+  ],
+  "totalLandmarks": 43,
+  "classrooms": [
+    {
+      "name": "A-Block Room 101",
+      "lat": 12.9181,
+      "lng": 80.1385,
+      "floor": "1",
+      "rating": 4.2,
+      "reviews": 14,
+      "address": "A-Block, Main Campus, MCC",
+      "hours": "08:30 - 16:30",
+      "phone": "+91 44 2239 0675",
+      "website": "https://mcc.edu.in/academics",
+      "images": [
+        "https://images.unsplash.com/photo-1580587771525-78b9dba3b914?auto=format&fit=crop&w=600&q=80"
+      ],
+      "category": "Academic"
+    },
+    {
+      "name": "CS Lab 201",
+      "lat": 12.9186,
+      "lng": 80.1396,
+      "floor": "2",
+      "rating": 4.5,
+      "reviews": 32,
+      "address": "Computer Science Block, MCC",
+      "hours": "09:00 - 17:00",
+      "phone": "+91 44 2239 6789",
+      "website": "https://mcc.edu.in/cs-dept",
+      "images": [
+        "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&w=600&q=80"
+      ],
+      "category": "Lab"
+    }
+  ],
+  "departments": [
+    {
+      "name": "Computer Science Dept",
+      "lat": 12.9185,
+      "lng": 80.1395,
+      "floor": "ground",
+      "rating": 4.7,
+      "reviews": 85,
+      "address": "Main Science Block, MCC",
+      "hours": "08:00 - 18:00",
+      "phone": "+91 44 2239 1234",
+      "website": "https://mcc.edu.in/departments/cs",
+      "images": [
+        "https://images.unsplash.com/photo-1562774053-701939374585?auto=format&fit=crop&w=600&q=80"
+      ],
+      "category": "Department"
+    },
+    {
+      "name": "Commerce Block",
+      "lat": 12.9228986,
+      "lng": 80.1196958,
+      "floor": "2",
+      "rating": 4.4,
+      "reviews": 60,
+      "address": "Commerce Block, New Wing, MCC",
+      "hours": "08:30 - 16:30",
+      "phone": "+91 44 2239 4567",
+      "website": "https://mcc.edu.in/departments/commerce",
+      "images": [
+        "https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=600&q=80"
+      ],
+      "category": "Department"
+    }
+  ],
+  "facilities": [
+    {
+      "name": "Main Gate",
+      "lat": 12.923163,
+      "lng": 80.120584,
+      "floor": "ground",
+      "rating": 4.1,
+      "reviews": 210,
+      "address": "Tambaram Main Road, MCC Entrance",
+      "hours": "Open 24 Hours",
+      "phone": "+91 44 2239 0001",
+      "website": "https://mcc.edu.in",
+      "images": [
+        "https://images.unsplash.com/photo-1590059523275-58a36c568f6a?auto=format&fit=crop&w=600&q=80"
+      ],
+      "category": "Entrance"
+    },
+    {
+      "name": "Library",
+      "lat": 12.9182,
+      "lng": 80.1390,
+      "floor": "ground",
+      "rating": 4.8,
+      "reviews": 340,
+      "address": "Central Campus, MCC",
+      "hours": "08:00 - 20:00",
+      "phone": "+91 44 2239 9999",
+      "website": "https://mcc.edu.in/library",
+      "images": [
+        "https://images.unsplash.com/photo-1507842217121-9e9f28dec969?auto=format&fit=crop&w=600&q=80"
+      ],
+      "category": "Facility"
+    },
+    {
+      "name": "Thomas Hall",
+      "lat": 12.9221401,
+      "lng": 80.1199855,
+      "floor": "ground",
+      "rating": 4.3,
+      "reviews": 45,
+      "address": "Near Hostels, MCC",
+      "hours": "06:00 - 22:00",
+      "phone": "N/A",
+      "website": "https://mcc.edu.in",
+      "images": [
+        "https://images.unsplash.com/photo-1555854877-bab0e564b8d5?auto=format&fit=crop&w=600&q=80"
+      ],
+      "category": "Hostel"
+    },
+    {
+      "name": "IOB ATM",
+      "lat": 12.92168,
+      "lng": 80.12053,
+      "floor": "ground",
+      "rating": 3.8,
+      "reviews": 12,
+      "address": "Near Student Center",
+      "hours": "Open 24 Hours",
+      "phone": "1800 425 4445",
+      "website": "https://iob.in",
+      "images": [
+        "https://images.unsplash.com/photo-1601597111158-2fceff292cdc?auto=format&fit=crop&w=600&q=80"
+      ],
+      "category": "Service"
+    },
+    {
+      "name": "Boxing Ring",
+      "lat": 12.920936,
+      "lng": 80.121124,
+      "floor": "ground",
+      "rating": 4.6,
+      "reviews": 28,
+      "address": "Sports Complex, MCC",
+      "hours": "06:00 - 09:00, 16:00 - 19:00",
+      "phone": "N/A",
+      "website": "https://mcc.edu.in/sports",
+      "images": [
+        "https://images.unsplash.com/photo-1599058945522-28d584b6f0ff?auto=format&fit=crop&w=600&q=80"
+      ],
+      "category": "Sports"
+    },
+    {
+      "name": "Center for Media Studies",
+      "lat": 12.920227,
+      "lng": 80.120561,
+      "floor": "ground",
+      "rating": 4.4,
+      "reviews": 56,
+      "address": "Media Block, MCC",
+      "hours": "09:00 - 17:00",
+      "phone": "+91 44 2239 3333",
+      "website": "https://mcc.edu.in/media",
+      "images": [
+        "https://images.unsplash.com/photo-1599058945522-28d584b6f0ff?auto=format&fit=crop&w=600&q=80"
+      ],
+      "category": "Department"
+    },
+    {
+      "name": "Miller Memorial Library",
+      "lat": 12.920080,
+      "lng": 80.120353,
+      "floor": "ground",
+      "rating": 4.5,
+      "reviews": 92,
+      "address": "Old Campus Area",
+      "hours": "08:30 - 18:30",
+      "phone": "N/A",
+      "website": "https://mcc.edu.in/library",
+      "images": [
+        "https://images.unsplash.com/photo-1521587760476-6c12a4b040da?auto=format&fit=crop&w=600&q=80"
+      ],
+      "category": "Library"
+    },
+    {
+      "name": "Macphails Arts Center",
+      "lat": 12.919368,
+      "lng": 80.121757,
+      "floor": "ground",
+      "rating": 4.2,
+      "reviews": 34,
+      "address": "Arts Block, MCC",
+      "hours": "09:00 - 16:00",
+      "phone": "N/A",
+      "website": "https://mcc.edu.in/arts",
+      "images": [
+        "https://images.unsplash.com/photo-1518998053901-5348d3969105?auto=format&fit=crop&w=600&q=80"
+      ],
+      "category": "Arts"
+    },
+    {
+      "name": "MCC Stone Bench",
+      "lat": 12.921065,
+      "lng": 80.120926,
+      "floor": "ground",
+      "rating": 4.9,
+      "reviews": 450,
+      "address": "The Woods, MCC Campus",
+      "hours": "Open 24 Hours",
+      "phone": "N/A",
+      "website": "https://mcc.edu.in",
+      "images": [
+        "https://images.unsplash.com/photo-1502086223501-7ea6ecd79368?auto=format&fit=crop&w=600&q=80"
+      ],
+      "category": "Landmark"
+    },
+    {
+      "name": "Anderson Hall",
+      "lat": 12.921221,
+      "lng": 80.122281,
+      "floor": "2",
+      "rating": 4.5,
+      "reviews": 110,
+      "address": "Main Quadrangle",
+      "hours": "08:00 - 18:00",
+      "phone": "+91 44 2239 8888",
+      "website": "https://mcc.edu.in/anderson",
+      "images": [
+        "https://images.unsplash.com/photo-1497294815431-9365093b7331?auto=format&fit=crop&w=600&q=80"
+      ],
+      "category": "Auditorium"
+    },
+    {
+      "name": "Institute for Advanced Christian Studies",
+      "lat": 12.91087,
+      "lng": 80.121098,
+      "floor": "ground",
+      "rating": 4.5,
+      "reviews": 12,
+      "address": "MCC Campus, Tambaram",
+      "hours": "09:00 - 17:00",
+      "phone": "N/A",
+      "website": "https://mcc.edu.in",
+      "images": [
+        "https://images.unsplash.com/photo-1541339907198-e08756eaa539?auto=format&fit=crop&w=600&q=80"
+      ],
+      "category": "Department"
+    },
+    {
+      "name": "MCC School of Continuing Education",
+      "lat": 12.919464,
+      "lng": 80.120293,
+      "floor": "ground",
+      "rating": 4.3,
+      "reviews": 8,
+      "address": "MCC Campus, Tambaram",
+      "hours": "09:00 - 17:00",
+      "phone": "N/A",
+      "website": "https://mcc.edu.in",
+      "images": [
+        "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&w=600&q=80"
+      ],
+      "category": "Academic"
+    },
+    {
+      "name": "Quadrangle MCC",
+      "lat": 12.921766,
+      "lng": 80.122117,
+      "floor": "ground",
+      "rating": 4.8,
+      "reviews": 120,
+      "address": "Center of Campus, MCC",
+      "hours": "Open 24 Hours",
+      "phone": "N/A",
+      "website": "https://mcc.edu.in",
+      "images": [
+        "https://images.unsplash.com/photo-1523580494863-6f3031224c94?auto=format&fit=crop&w=600&q=80"
+      ],
+      "category": "Landmark"
+    },
+    {
+      "name": "Bishop Heber Chapel",
+      "lat": 12.9187664,
+      "lng": 80.1237943,
+      "floor": "ground",
+      "rating": 4.9,
+      "reviews": 75,
+      "address": "MCC Campus, Tambaram",
+      "hours": "06:00 - 20:00",
+      "phone": "N/A",
+      "website": "https://mcc.edu.in",
+      "images": [
+        "https://images.unsplash.com/photo-1548625361-195fe0182a7f?auto=format&fit=crop&w=600&q=80"
+      ],
+      "category": "Religious"
+    },
+    {
+      "name": "Heber Hall",
+      "lat": 12.9195085,
+      "lng": 80.1237728,
+      "floor": "ground",
+      "rating": 4.4,
+      "reviews": 40,
+      "address": "MCC Campus, Tambaram",
+      "hours": "N/A",
+      "phone": "N/A",
+      "website": "https://mcc.edu.in",
+      "images": [
+        "https://images.unsplash.com/photo-1555854877-bab0e564b8d5?auto=format&fit=crop&w=600&q=80"
+      ],
+      "category": "Hostel"
+    },
+    {
+      "name": "MCC Campus Clinic",
+      "lat": 12.9207435,
+      "lng": 80.1227650,
+      "floor": "ground",
+      "rating": 4.2,
+      "reviews": 25,
+      "address": "MCC Campus, Tambaram",
+      "hours": "08:00 - 20:00",
+      "phone": "N/A",
+      "website": "https://mcc.edu.in",
+      "images": [
+        "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&w=600&q=80"
+      ],
+      "category": "Medical"
+    },
+    {
+      "name": "Zoology tank",
+      "lat": 12.9203990,
+      "lng": 80.1231177,
+      "floor": "ground",
+      "rating": 4.1,
+      "reviews": 15,
+      "address": "Science Block, MCC",
+      "hours": "N/A",
+      "phone": "N/A",
+      "website": "https://mcc.edu.in",
+      "images": [
+        "https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&w=600&q=80"
+      ],
+      "category": "Landmark"
+    },
+    {
+      "name": "College Union society",
+      "lat": 12.9203866,
+      "lng": 80.1277314,
+      "floor": "ground",
+      "rating": 4.6,
+      "reviews": 88,
+      "address": "Near Main Quad, MCC",
+      "hours": "09:00 - 18:00",
+      "phone": "N/A",
+      "website": "https://mcc.edu.in",
+      "images": [
+        "https://images.unsplash.com/photo-1523580494863-6f3031224c94?auto=format&fit=crop&w=600&q=80"
+      ],
+      "category": "Student Center"
+    },
+    {
+      "name": "MCC Cafeteria",
+      "lat": 12.92034,
+      "lng": 80.12273,
+      "floor": "ground",
+      "rating": 4.2,
+      "reviews": 150,
+      "address": "Near Union Society, MCC",
+      "hours": "08:00 - 18:00",
+      "phone": "N/A",
+      "website": "https://mcc.edu.in",
+      "images": [
+        "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=600&q=80"
+      ],
+      "category": "Canteen"
+    },
+    {
+      "name": "Botany Tank",
+      "lat": 12.9205631,
+      "lng": 80.1209786,
+      "floor": "ground",
+      "rating": 4.0,
+      "reviews": 10,
+      "address": "Botany Department, MCC",
+      "hours": "N/A",
+      "phone": "N/A",
+      "website": "https://mcc.edu.in",
+      "images": [
+        "https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&w=600&q=80"
+      ],
+      "category": "Landmark"
+    },
+    {
+      "name": "MCC Pavilion",
+      "lat": 12.91694,
+      "lng": 80.12156,
+      "floor": "ground",
+      "rating": 4.4,
+      "reviews": 32,
+      "address": "Sports Ground, MCC",
+      "hours": "N/A",
+      "phone": "N/A",
+      "website": "https://mcc.edu.in",
+      "images": [
+        "https://images.unsplash.com/photo-1599586120429-48281b6f0ece?auto=format&fit=crop&w=600&q=80"
+      ],
+      "category": "Sports"
+    },
+    {
+      "name": "Selaiyur Hall",
+      "lat": 12.92138,
+      "lng": 80.12421,
+      "floor": "ground",
+      "rating": 4.5,
+      "reviews": 65,
+      "address": "MCC Campus, Tambaram",
+      "hours": "N/A",
+      "phone": "N/A",
+      "website": "https://mcc.edu.in",
+      "images": [
+        "https://images.unsplash.com/photo-1555854877-bab0e564b8d5?auto=format&fit=crop&w=600&q=80"
+      ],
+      "category": "Hostel"
+    },
+    {
+      "name": "MCC Gate 2",
+      "lat": 12.92295,
+      "lng": 80.12393,
+      "floor": "ground",
+      "rating": 4.0,
+      "reviews": 15,
+      "address": "East Tambaram, MCC Entrance 2",
+      "hours": "Open 24 Hours",
+      "phone": "N/A",
+      "website": "https://mcc.edu.in",
+      "images": [
+        "https://images.unsplash.com/photo-1590059523275-58a36c568f6a?auto=format&fit=crop&w=600&q=80"
+      ],
+      "category": "Entrance"
+    },
+    {
+      "name": "MCC Main Hospital",
+      "lat": 12.91724,
+      "lng": 80.12539,
+      "floor": "ground",
+      "rating": 4.3,
+      "reviews": 32,
+      "address": "MCC Campus, Medical Wing",
+      "hours": "Open 24 Hours",
+      "phone": "+91 44 2239 0005",
+      "website": "https://mcc.edu.in/health",
+      "images": [
+        "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&w=600&q=80"
+      ],
+      "category": "Medical"
+    },
+    {
+      "name": "MCC Farm",
+      "lat": 12.91562,
+      "lng": 80.12586,
+      "floor": "ground",
+      "rating": 4.5,
+      "reviews": 22,
+      "address": "MCC Campus, South Side",
+      "hours": "07:00 - 17:00",
+      "phone": "N/A",
+      "website": "https://mcc.edu.in/farm",
+      "images": [
+        "https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=600&q=80"
+      ],
+      "category": "Landmark"
+    },
+    {
+      "name": "MCC Lake",
+      "lat": 12.91572,
+      "lng": 80.11732,
+      "floor": "ground",
+      "rating": 4.7,
+      "reviews": 55,
+      "address": "MCC Campus, West Side",
+      "hours": "Open 24 Hours",
+      "phone": "N/A",
+      "website": "https://mcc.edu.in",
+      "images": [
+        "https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&w=600&q=80"
+      ],
+      "category": "Landmark"
+    },
+    {
+      "name": "MCC International Guest House",
+      "lat": 12.91873,
+      "lng": 80.11978,
+      "floor": "ground",
+      "rating": 4.6,
+      "reviews": 18,
+      "address": "Near Main Gate, MCC",
+      "hours": "Open 24 Hours",
+      "phone": "+91 44 2239 1111",
+      "website": "https://mcc.edu.in/guesthouse",
+      "images": [
+        "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=600&q=80"
+      ],
+      "category": "Service"
+    },
+    {
+      "name": "MCC Indoor Stadium",
+      "lat": 12.91691,
+      "lng": 80.11940,
+      "floor": "ground",
+      "rating": 4.4,
+      "reviews": 42,
+      "address": "South Campus, MCC",
+      "hours": "06:00 - 21:00",
+      "phone": "N/A",
+      "website": "https://mcc.edu.in/sports",
+      "images": [
+        "https://images.unsplash.com/photo-1541252260730-0412e8e2108e?auto=format&fit=crop&w=600&q=80"
+      ],
+      "category": "Sports"
+    }
+  ]
+}

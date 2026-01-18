@@ -1,0 +1,94 @@
+{
+  "type": "FeatureCollection",
+  "generator": "overpass-turbo",
+  "copyright": "The data included in this document is from www.openstreetmap.org. The data is made available under ODbL.",
+  "timestamp": "2026-01-16T06:34:25Z",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/28260605",
+        "amenity": "college",
+        "name": "Madras Christian College",
+        "name:ml": "മദ്രാസ് ക്രിസ്ത്യൻ കോളേജ്",
+        "name:ta": "சென்னை கிறித்துவக் கல்லூரி",
+        "short_name": "MCC",
+        "website": "https://mcc.edu.in/",
+        "wikidata": "Q3524031",
+        "wikipedia": "en:Madras Christian College"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              80.1167901,
+              12.9140575
+            ],
+            [
+              80.1167925,
+              12.9135648
+            ],
+            [
+              80.1169698,
+              12.9134975
+            ],
+            [
+              80.1214448,
+              12.9130819
+            ],
+            [
+              80.1215092,
+              12.9138087
+            ],
+            [
+              80.1235262,
+              12.9136665
+            ],
+            [
+              80.1236378,
+              12.9161762
+            ],
+            [
+              80.1268994,
+              12.9160424
+            ],
+            [
+              80.1270195,
+              12.9165276
+            ],
+            [
+              80.1273028,
+              12.9227852
+            ],
+            [
+              80.1190287,
+              12.9232035
+            ],
+            [
+              80.1189429,
+              12.9221578
+            ],
+            [
+              80.1178442,
+              12.9222247
+            ],
+            [
+              80.1175867,
+              12.9187947
+            ],
+            [
+              80.1169001,
+              12.9153815
+            ],
+            [
+              80.1167901,
+              12.9140575
+            ]
+          ]
+        ]
+      },
+      "id": "way/28260605"
+    }
+  ]
+}

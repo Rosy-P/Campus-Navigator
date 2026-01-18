@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>CampusVoice Navigator</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Leaflet 
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>-->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <!-- Icons -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+  <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Josefin+Sans:ital,wght@0,100..700;1,100..700&family=Mulish:ital,wght@0,200..1000;1,200..1000&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Saira+Stencil+One&display=swap"
+    rel="stylesheet">
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  <!-- CSS -->
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+
+</head>
+
+<body>
+  <div id="splash">
+    <div class="splash-content">
+      <div class="logo">
+        <i class="ph-fill ph-graduation-cap"></i>
+      </div>
+      <h1 class="app-title">MCC CAMPUS</h1>
+    </div>
+  </div>
+  <!-- FIXED TOP SEARCH BAR -->
+  <div id="searchBar" class="search-container hidden">
+    <div class="search-box">
+      <button class="search-icon-btn"><i class="fas fa-search"></i></button>
+      <input type="text" class="search-input" id="searchInput" placeholder="Search for 'Library', 'Canteen'...">
+      <div class="search-actions">
+        <button class="action-btn" id="voiceBtn" title="Voice Search">
+          <i class="fas fa-microphone"></i>
+        </button>
+        <div class="v-divider"></div>
+        <button class="action-btn location-btn" id="locationBtn" title="My Location">
+          <i class="fas fa-location-arrow"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Smart Search Suggestions -->
+    <div id="searchSuggestions" class="search-suggestions hidden"></div>
+  </div>
+  </div>
+  <!-- Main App -->
+  <div id="app" class="hidden">
+    <!-- Your Home / Map UI here -->
+    <div class="app-container">
+
+      <!-- SIDEBAR -->
+      <aside class="sidebar">
+        <div class="container">
+          <div class="brand">
+            <div class="logo-icon">
+              <i class="ph-fill ph-graduation-cap"></i>
+            </div>
+            <h1>MCC CAMPUS</h1>
+          </div>
+
+          <nav class="nav-menu">
+            <a class="nav-item active"><i class="ri-map-pin-line"></i><span class="menu-text"> Locations</span></a>
+            <a class="nav-item"><i class="ri-building-line"></i> <span class="menu-text">Facilities</span> </a>
+            <a class="nav-item"><i class="ri-calendar-event-line"></i><span class="menu-text">Events</span> </a>
+            <a class="nav-item"><i class="ri-walk-line"></i><span class="menu-text">Tour Mode</span> </a>
+            <a class="nav-item" id="settingsBtn"><i class="ri-settings-3-line"></i><span
+                class="menu-text">Settings</span></a>
+
+            <a class="nav-item emergency"><i class="ri-alarm-warning-line"></i><span class="menu-text">
+                Emergency</span></a>
+          </nav>
+
+
+      </aside>
+      <!-- MAP CONTAINER (Main Area) -->
+      <div class="map-container">
+        <div id="map"></div>
+
+        <!-- FLOATING QUICK ACCESS (Like Google Maps) -->
+        <div id="quickAccess" class="quick-access">
+          <button class="quick-btn hostel" title="Nearest Hostel">
+            <i class="fas fa-home"></i><span>Hostel</span>
+          </button>
+          <button class="quick-btn lab" title="Nearest Lab">
+            <i class="fas fa-flask"></i><span>Lab</span>
+          </button>
+          <button class="quick-btn canteen" title="Canteen">
+            <i class="fas fa-utensils"></i><span>Canteen</span>
+          </button>
+        </div>
+      </div>
+      <!-- INFO PANEL -->
+      <aside class="info-panel" id="infoPanel">
+        <!-- Close Button -->
+        <button class="close-panel" onclick="closeInfoPanel()">
+          <i class="ri-close-line"></i>
+        </button>
+
+        <!-- Header Image -->
+        <div class="panel-header-image">
+          <img id="infoImage"
+            src="https://images.unsplash.com/photo-1580587771525-78b9dba3b914?auto=format&fit=crop&w=600&q=80"
+            alt="Location Image">
+        </div>
+
+        <div id="panelDetails">
+          <div class="panel-content">
+            <!-- Title & Category -->
+            <h2 id="infoTitle">Select Destination</h2>
+            <p class="category-text" id="infoSubtitle">[ Category • Campus Zone ]</p>
+
+            <!-- Action Buttons -->
+            <div class="action-buttons">
+              <button class="action-btn primary" id="btnNavigate">
+                <div class="icon-circle"><i class="ri-direction-fill"></i></div>
+                <span>Navigate</span>
+              </button>
+              <button class="action-btn" id="btnStart">
+                <div class="icon-circle"><i class="ri-map-pin-user-fill"></i></div>
+                <span>Start</span>
+              </button>
+              <button class="action-btn" id="btnSave">
+                <div class="icon-circle"><i class="ri-bookmark-line"></i></div>
+                <span>Save</span>
+              </button>
+            </div>
+
+            <hr class="divider">
+
+            <!-- Walk Info -->
+            <div class="walk-info">
+              <span class="walk-icon">🚶</span>
+              <span id="walkDist">280m</span>
+              <span class="dot">•</span>
+              <span id="walkTime">4 min walk</span>
+            </div>
+
+            <hr class="divider">
+
+            <!-- About Section -->
+            <div class="about-section">
+              <h3>📘 About this place</h3>
+              <ul class="about-list">
+                <li>Departments</li>
+                <li>Facilities</li>
+                <li>Special notes</li>
+              </ul>
+            </div>
+
+            <hr class="divider">
+
+            <!-- Photos Section -->
+            <div class="photos-section">
+              <h3>Photos</h3>
+              <div class="photo-scroll" id="photoGallery">
+                <!-- JS will populate this -->
+                <img src="https://images.unsplash.com/photo-1562774053-701939374585?auto=format&fit=crop&w=600&q=80">
+                <img src="https://images.unsplash.com/photo-1590059523275-58a36c568f6a?auto=format&fit=crop&w=600&q=80">
+                <img src="https://images.unsplash.com/photo-1507842217121-9e9f28dec969?auto=format&fit=crop&w=600&q=80">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- VIEW 2: NAVIGATION SETUP (Inside Side Panel) -->
+        <div id="panelNav" class="hidden">
+          <div class="panel-content">
+
+            <!-- Navigation Header -->
+            <div class="nav-header">
+              <button class="back-btn" id="backToDetails"><i class="ri-arrow-left-line"></i></button>
+              <h3>Plan Route</h3>
+            </div>
+
+            <div class="nav-form">
+              <!-- From Input -->
+              <div class="nav-field-group">
+                <label>Starting Point</label>
+                <div class="toggle-start-vertical">
+                  <label class="radio-card">
+                    <input type="radio" name="startType" value="current" checked>
+                    <div class="card-content">
+                      <div class="icon-box blue"><i class="ri-gps-fill"></i></div>
+                      <div class="text-box">
+                        <span class="main-text">My Location</span>
+                        <span class="sub-text">Use GPS</span>
+                      </div>
+                      <div class="check-icon"><i class="ri-check-line"></i></div>
+                    </div>
+                  </label>
+
+                  <label class="radio-card">
+                    <input type="radio" name="startType" value="custom">
+                    <div class="card-content">
+                      <div class="icon-box purple"><i class="ri-map-pin-add-line"></i></div>
+                      <div class="text-box">
+                        <span class="main-text">Pick on Map</span>
+                        <span class="sub-text">Choose manually</span>
+                      </div>
+                      <div class="check-icon"><i class="ri-check-line"></i></div>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              <div class="nav-connector">
+                <div class="line"></div>
+                <i class="ri-arrow-down-s-fill"></i>
+              </div>
+
+              <!-- To Input (Readonly) -->
+              <div class="nav-field-group">
+                <label>Destination</label>
+                <div class="destination-card">
+                  <div class="icon-box red"><i class="ri-map-pin-fill"></i></div>
+                  <span id="navInfoDest">Library</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Start Button -->
+            <button class="start-btn-large" id="startNavigationBtn">
+              <span>Start Navigation</span>
+              <i class="ri-navigation-fill"></i>
+            </button>
+
+            <!-- Active Route Stats (Hidden initially) -->
+            <div id="routeStats" class="route-stats-panel hidden">
+              <div class="stat-row">
+                <div class="stat-col">
+                  <span class="big-stat" id="navTime">0 min</span>
+                  <span class="label">Time</span>
+                </div>
+                <div class="mid-line"></div>
+                <div class="stat-col">
+                  <span class="big-stat" id="navDist">0 m</span>
+                  <span class="label">Distance</span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </aside>
+
+      </section>
+
+      <!-- FOOTER 
+    <footer>
+      MCC CampusVoice Navigator · Final Year Project · Rosy (CS)
+    </footer>
+
+  </main>-->
+    </div>
+
+
+    <!-- SETTINGS MODAL -->
+    <div id="settingsModal" class="settings-modal hidden">
+      <div class="settings-content">
+        <div class="settings-header">
+          <h2>Settings</h2>
+          <button class="close-settings" id="closeSettings"><i class="ri-close-line"></i></button>
+        </div>
+        <div class="settings-body">
+
+          <!-- SECTION 1: APPEARANCE -->
+          <div class="settings-section">
+            <h3>Appearance</h3>
+            <div class="theme-options">
+              <label class="theme-option">
+                <input type="radio" name="theme" value="dark" checked>
+                <div class="theme-card dark">
+                  <div class="theme-preview"></div>
+                  <span>Dark Mode</span>
+                </div>
+              </label>
+              <label class="theme-option">
+                <input type="radio" name="theme" value="light">
+                <div class="theme-card light">
+                  <div class="theme-preview"></div>
+                  <span>Light Mode</span>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <hr class="settings-divider">
+
+          <!-- SECTION 2: MAP VIEW -->
+          <div class="settings-section">
+            <h3>Map View</h3>
+            <div class="map-options">
+              <label class="map-option">
+                <input type="radio" name="mapType" value="default" checked>
+                <div class="option-content">
+                  <i class="ri-map-2-line"></i>
+                  <div class="option-text">
+                    <span class="opt-title">Default</span>
+                    <span class="opt-desc">Standard digital map</span>
+                  </div>
+                </div>
+                <div class="check-circle"><i class="ri-check-line"></i></div>
+              </label>
+              <label class="map-option">
+                <input type="radio" name="mapType" value="satellite">
+                <div class="option-content">
+                  <i class="ri-earth-line"></i>
+                  <div class="option-text">
+                    <span class="opt-title">Satellite</span>
+                    <span class="opt-desc">Aerial imagery</span>
+                  </div>
+                </div>
+                <div class="check-circle"><i class="ri-check-line"></i></div>
+              </label>
+            </div>
+          </div>
+
+          <hr class="settings-divider">
+
+          <!-- SECTION 3: NOTIFICATIONS -->
+          <div class="settings-section">
+            <h3>Notifications</h3>
+            <div class="toggle-item">
+              <div class="toggle-info">
+                <span class="toggle-title">Campus Events</span>
+                <span class="toggle-desc">Get notified about upcoming events</span>
+              </div>
+              <label class="switch">
+                <input type="checkbox" id="notifEvents" checked>
+                <span class="slider round"></span>
+              </label>
+            </div>
+            <div class="toggle-item">
+              <div class="toggle-info">
+                <span class="toggle-title">Emergency Alerts</span>
+                <span class="toggle-desc">Instant alerts for campus safety</span>
+              </div>
+              <label class="switch">
+                <input type="checkbox" id="notifEmergency" checked>
+                <span class="slider round"></span>
+              </label>
+            </div>
+          </div>
+
+
+          <hr class="settings-divider">
+
+          <!-- SECTION 3: LOCATION & PRIVACY -->
+          <div class="settings-section">
+            <h3>Location & Privacy</h3>
+            <div class="toggle-item">
+              <span class="setting-label">Allow Location Access</span>
+              <label class="switch">
+                <input type="checkbox" id="privacyLocation" checked>
+                <span class="slider round"></span>
+              </label>
+            </div>
+            <div class="toggle-item">
+              <span class="setting-label">Use Last Known Location</span>
+              <label class="switch">
+                <input type="checkbox" id="privacyLastKnown" checked>
+                <span class="slider round"></span>
+              </label>
+            </div>
+            <button class="danger-btn" id="clearHistoryBtn">
+              <i class="fas fa-trash-alt"></i> Clear Navigation History
+            </button>
+          </div>
+
+          <div class="settings-divider"></div>
+
+          <!-- SECTION 4: ABOUT & HELP -->
+          <div class="about-section">
+            <div class="about-logo">
+              <i class="fas fa-graduation-cap"></i>
+            </div>
+            <h4>CampusVoice Navigator</h4>
+            <p class="version">Version 1.2.0 (Stable)</p>
+
+            <div class="about-details">
+              <p><strong>Developed by:</strong> Rosy (CS Dept)</p>
+              <p><strong>Data Source:</strong> OpenStreetMap & Manual Collection</p>
+              <p><strong>Contact:</strong> support@campusvoice.mcc.edu</p>
+            </div>
+
+            <div class="about-footer">
+              <p>&copy; 2026 MCC Campus Project</p>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+
+
+  <!-- Floating "Confirm Start" Pill (For Map Selection) -->
+  <div id="mapPickPill" class="map-pick-pill hidden">
+    <div class="pill-text">Tap map to set start</div>
+    <button class="pill-btn" id="confirmStartPoint" disabled>Confirm</button>
+    <button class="pill-close" id="cancelMapPick"><i class="ri-close-line"></i></button>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <script src="script.js"></script>
+  <!--<script src="splash.js"></script>-->
+</body>
+
+
+
+
+</html>
