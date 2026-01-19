@@ -814,8 +814,8 @@ body.sidebar-collapsed .logo-icon {
   left: 0;
   width: 100%;
   height: 100%;
-  z-index: 400;
-  /* Above tiles */
+  z-index: 250;
+  /* Above tiles, below route/markers */
   pointer-events: none;
   /* Interact through it */
 
@@ -828,9 +828,14 @@ body.sidebar-collapsed .logo-icon {
   mask-image: radial-gradient(ellipse at center, transparent 40%, black 100%);
   -webkit-mask-image: radial-gradient(ellipse at center, transparent 40%, black 100%);
 
-  /* 2. The Shadow (Light to Dark Smooth) */
   /* Starts transparent, fades to dark navy at edges */
   background: radial-gradient(ellipse at center, transparent 45%, rgba(15, 23, 42, 0.3) 100%);
+}
+
+/* Reduced vignette during navigation for better visibility */
+body.navigating .vignette-layer {
+  opacity: 0.5;
+  transition: opacity 0.5s ease;
 }
 
 /* ===== MAP ADJUSTMENT ===== */
@@ -1568,6 +1573,98 @@ body.light-mode .search-input {
   width: 1px;
   height: 30px;
   background: rgba(255, 255, 255, 0.1);
+}
+
+/* ===== NAVIGATION STATE UI ===== */
+body.navigating #searchBar,
+body.navigating .quick-access {
+  pointer-events: none;
+  opacity: 1.0;
+  /* Keep visible */
+  transition: all 0.5s ease;
+}
+
+body.navigating .custom-marker {
+  pointer-events: none;
+  /* Prevent clicking other POIs during navigation */
+}
+
+/* Pulsing Start Marker */
+.pulsing-marker {
+  animation: marker-pulse 1.5s infinite;
+}
+
+@keyframes marker-pulse {
+  0% {
+    stroke-width: 2px;
+    stroke-opacity: 1;
+  }
+
+  50% {
+    stroke-width: 24px;
+    stroke-opacity: 0.3;
+  }
+
+  100% {
+    stroke-width: 2px;
+    stroke-opacity: 1;
+  }
+}
+
+/* Destination Flag Marker */
+.nav-dest-marker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.google-pin {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: #ea4335;
+  /* Google Red */
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.4));
+  animation: pin-drop 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.google-pin i {
+  font-size: 50px;
+}
+
+.pin-dot {
+  position: absolute;
+  top: 13px;
+  width: 16px;
+  height: 16px;
+  background: white;
+  border-radius: 50%;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+@keyframes pin-drop {
+  from {
+    transform: translateY(-30px) scale(0.5);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes flag-pop {
+  from {
+    transform: scale(0);
+    rotate: -45deg;
+  }
+
+  to {
+    transform: scale(1);
+    rotate: 0deg;
+  }
 }
 
 /* FLOATING MAP PICK PILL */

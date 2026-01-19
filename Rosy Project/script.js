@@ -126,27 +126,37 @@ function calculateRoute(startLatLng, endLatLng) {
 }
 
 // 2. RENDERING: Draws the route on the map
-let currentRouteLayers = L.layerGroup(); // Use LayerGroup for multiple lines
-let currentRouteBaseLayer = null; // Reference for dynamic styling logic
+let currentRouteLayers = L.layerGroup(); // Group for shadow, main, and highlight
+let routeShadow = null;
+let routeMain = null;
+let routeHighlight = null;
 
-// Helper to calculate weight based on zoom (Keeps physical width roughly constant)
-function getDynamicRouteWeight(zoom) {
-  // Base: 25px at Zoom 18.
-  // Formula: base * 2^(zoom - 18)
-  const scale = Math.pow(2, zoom - 18);
-  let weight = 25 * scale;
+// Navigation State
+let isNavigating = false;
+let navMarkers = L.layerGroup(); // To hold pulsing start and flag destination
 
-  // Clamp values to sane limits
-  if (weight < 8) weight = 8;
-  if (weight > 300) weight = 300;
+// Helper to calculate weights based on zoom (Touch-friendly & Premium feel)
+function getLayerWeights(zoom) {
+  // Adaptive scaling: Route gets thicker as we zoom in
+  let baseWeight = 12;
+  if (zoom === 17) baseWeight = 14;
+  if (zoom === 18) baseWeight = 20;
+  if (zoom === 19) baseWeight = 28;
+  if (zoom >= 20) baseWeight = 36;
 
-  return weight;
+  return {
+    shadow: baseWeight * 1.15, // Tighter shadow
+    main: baseWeight,
+    highlight: baseWeight * 0.3
+  };
 }
 
 function updateRouteStyle() {
-  if (currentRouteBaseLayer && map) {
-    const newWeight = getDynamicRouteWeight(map.getZoom());
-    currentRouteBaseLayer.setStyle({ weight: newWeight });
+  if (isNavigating && map) {
+    const weights = getLayerWeights(map.getZoom());
+    if (routeShadow) routeShadow.setStyle({ weight: weights.shadow });
+    if (routeMain) routeMain.setStyle({ weight: weights.main });
+    if (routeHighlight) routeHighlight.setStyle({ weight: weights.highlight });
   }
 }
 
@@ -155,50 +165,55 @@ function drawRoute(routePoints) {
 
   // Clear previous route
   currentRouteLayers.clearLayers();
-  currentRouteBaseLayer = null; // Reset ref
+  routeShadow = routeMain = routeHighlight = null;
 
   if (!routePoints || routePoints.length === 0) return;
 
-  // Calculate initial weight
-  const initialWeight = getDynamicRouteWeight(map.getZoom());
+  const weights = getLayerWeights(map.getZoom());
 
-  // Layer 1: Road Base (Wide, Soft Glow) - Dynamic Width
-  const routeBase = L.polyline(routePoints, {
-    color: "#60a5fa", // Soft Blue (Tailwind Blue-400)
-    weight: initialWeight,
-    opacity: 0.8,
+  // Layer 1: Outer casing (Shadow)
+  routeShadow = L.polyline(routePoints, {
+    color: "#1a1a1a",
+    weight: weights.shadow,
+    opacity: 0.4,
     lineJoin: "round",
     lineCap: "round"
   });
 
-  // Store ref for zoom events
-  currentRouteBaseLayer = routeBase;
-
-  // Layer 2: Road Center (Sharper, Darker)
-  const routeCore = L.polyline(routePoints, {
-    color: "#2563eb", // Deep Blue (Tailwind Blue-600)
-    weight: 7, // Keep core relatively steady/sharp
-    opacity: 1.0,
+  // Layer 2: Main route (Solid Dark Blue)
+  routeMain = L.polyline(routePoints, {
+    color: "#1E40AF",
+    weight: weights.main,
+    opacity: 1,
     lineJoin: "round",
-    lineCap: "round",
-    dashArray: "0, 0"
+    lineCap: "round"
   });
 
-  // Add to group and map
-  currentRouteLayers.addLayer(routeBase);
-  currentRouteLayers.addLayer(routeCore);
+  // Layer 3: Unified with Main for thickness consistency
+  routeHighlight = L.polyline(routePoints, {
+    color: "#1E40AF",
+    weight: weights.highlight,
+    opacity: 1,
+    lineJoin: "round",
+    lineCap: "round"
+  });
+
+  // Add all to group
+  currentRouteLayers.addLayer(routeShadow);
+  currentRouteLayers.addLayer(routeMain);
+  currentRouteLayers.addLayer(routeHighlight);
   currentRouteLayers.addTo(map);
 
   // Smart Zoom
-  map.fitBounds(routeBase.getBounds(), {
+  map.fitBounds(routeMain.getBounds(), {
     padding: [80, 80],
     maxZoom: 19,
     animate: true,
     duration: 1.5
   });
 
-  // Attach Zoom Listener (Idempotent check)
-  map.off('zoomend', updateRouteStyle); // Remove existing to prevent dupes
+  // Attach Zoom Listener
+  map.off('zoomend', updateRouteStyle);
   map.on('zoomend', updateRouteStyle);
 }
 
@@ -502,7 +517,7 @@ function createMarker(loc) {
   const marker = L.marker([loc.lat, loc.lng], { icon: icon });
 
   marker.on('click', () => {
-    map.flyTo([loc.lat, loc.lng], 18, { duration: 1.5 });
+    map.flyTo([loc.lat, loc.lng], 20, { duration: 1.5 });
     openInfoPanel(loc, loc.category);
   });
 
@@ -586,7 +601,7 @@ function openInfoPanel(item, type) {
   // Adjust map
   setTimeout(() => {
     map.invalidateSize();
-    map.panTo([item.lat, item.lng]);
+    map.flyTo([item.lat, item.lng], 20, { duration: 1.2 });
   }, 300);
 }
 
@@ -683,7 +698,7 @@ function selectLocation(loc) {
   // Ensure all markers are visible
   renderMarkers("all");
 
-  map.flyTo([loc.lat, loc.lng], 19, { duration: 1.5 });
+  map.flyTo([loc.lat, loc.lng], 20, { duration: 1.5 });
   openInfoPanel(loc, loc.category);
 }
 
@@ -963,7 +978,45 @@ startNavBtn.addEventListener("click", () => {
   const points = calculateRoute(startForRoute, endForRoute);
 
   if (points) {
+    // 🚩 ENTER NAVIGATION STATE
+    isNavigating = true;
+    document.body.classList.add("navigating");
+
+    // 🔅 NAVIGATION MODE: Keep map bright and reduce POI noise
+    if (tileLayer) tileLayer.setOpacity(1.0);
+
     drawRoute(points);
+
+    // 📍 NAVIGATION MARKERS
+    navMarkers.clearLayers();
+
+    // Start: Pulsing Blue Dot (Even Larger)
+    const startPoint = points[0];
+    const startMarker = L.circleMarker(startPoint, {
+      radius: 16,
+      fillColor: "#2E7DFF",
+      fillOpacity: 1,
+      color: "#fff",
+      weight: 4,
+      className: 'pulsing-marker'
+    }).addTo(navMarkers);
+
+    // Destination: Google Pin (Premium)
+    const endPoint = points[points.length - 1];
+    const destIcon = L.divIcon({
+      className: 'nav-dest-marker',
+      html: `
+        <div class="google-pin">
+          <i class="fas fa-map-marker-alt"></i>
+          <div class="pin-dot"></div>
+        </div>
+      `,
+      iconSize: [50, 60],
+      iconAnchor: [25, 60]
+    });
+    L.marker(endPoint, { icon: destIcon }).addTo(navMarkers);
+
+    navMarkers.addTo(map);
 
     // UPDATE STATS
     const totalDist = points.reduce((acc, pt, i) => {
@@ -978,10 +1031,6 @@ startNavBtn.addEventListener("click", () => {
 
     document.getElementById("routeStats").classList.remove("hidden");
 
-    // Mobile UX: Close panel on start to see map? 
-    // Or keep open? Let's keep open but minimize maybe later.
-    // For now, keep it open.
-
   } else {
     alert("Could not calculate a path. Try a closer starting point.");
   }
@@ -993,8 +1042,17 @@ closeInfoPanel = function () {
   document.body.classList.remove("info-open");
   document.body.classList.remove("sidebar-collapsed");
 
+  // 🚩 EXIT NAVIGATION STATE
+  isNavigating = false;
+  document.body.classList.remove("navigating");
+
+  // 🔆 RESTORE MAP App State
+  if (tileLayer) tileLayer.setOpacity(1.0);
+
   // Reset Map App State
   if (currentRouteLayers) currentRouteLayers.clearLayers();
+  if (navMarkers) navMarkers.clearLayers();
+
   const routeStats = document.getElementById("routeStats");
   if (routeStats) routeStats.classList.add("hidden");
 
