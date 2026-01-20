@@ -11,6 +11,11 @@ window.addEventListener("load", () => {
   }, 3000);
 });
 // ---------------- ROUTING UTILS (GLOBAL) ----------------
+let navigationRoutePoints = [];
+let routeProgressIndex = 0;
+let activeRoutePoints = [];
+let activeRouteIndex = 0;
+
 
 // Convert lat/lng to unique node key
 function nodeKey(lat, lng) {
@@ -128,8 +133,9 @@ function calculateRoute(startLatLng, endLatLng) {
 // 2. RENDERING: Draws the route on the map
 let currentRouteLayers = L.layerGroup(); // Group for shadow, main, and highlight
 let routeShadow = null;
-let routeMain = null;
 let routeHighlight = null;
+let completedRouteLayer = null; // Gray portion
+let remainingRouteLayer = null; // Blue portion
 
 // Navigation State
 let isNavigating = false;
@@ -155,23 +161,29 @@ function updateRouteStyle() {
   if (isNavigating && map) {
     const weights = getLayerWeights(map.getZoom());
     if (routeShadow) routeShadow.setStyle({ weight: weights.shadow });
-    if (routeMain) routeMain.setStyle({ weight: weights.main });
+    if (completedRouteLayer) completedRouteLayer.setStyle({ weight: weights.main });
+    if (remainingRouteLayer) remainingRouteLayer.setStyle({ weight: weights.main });
     if (routeHighlight) routeHighlight.setStyle({ weight: weights.highlight });
   }
 }
 
 function drawRoute(routePoints) {
-  if (!map) return;
+  if (!routePoints || routePoints.length < 2) return;
 
   // Clear previous route
   currentRouteLayers.clearLayers();
-  routeShadow = routeMain = routeHighlight = null;
+  routeShadow = routeHighlight = completedRouteLayer = remainingRouteLayer = null;
 
-  if (!routePoints || routePoints.length === 0) return;
+  // ✅ STORE ROUTE DATA FOR NAVIGATION
+  navigationRoutePoints = routePoints;
+  activeRoutePoints = routePoints;
+  activeRouteIndex = 0;
+
+  if (!map) return;
 
   const weights = getLayerWeights(map.getZoom());
 
-  // Layer 1: Outer casing (Shadow)
+  // Layer 1: Outer casing (Shadow) - Covers the whole path
   routeShadow = L.polyline(routePoints, {
     color: "#1a1a1a",
     weight: weights.shadow,
@@ -180,32 +192,43 @@ function drawRoute(routePoints) {
     lineCap: "round"
   });
 
-  // Layer 2: Main route (Solid Dark Blue)
-  routeMain = L.polyline(routePoints, {
-    color: "#1E40AF",
+  // Layer 2 & 3: Progress-aware layers
+  completedRouteLayer = L.polyline([], {
+    color: "#64748b", // Slate/Gray
+    weight: weights.main,
+    opacity: 0.8,
+    lineJoin: "round",
+    lineCap: "round"
+  });
+
+  remainingRouteLayer = L.polyline(routePoints, {
+    color: "#1E40AF", // Deep Blue
     weight: weights.main,
     opacity: 1,
     lineJoin: "round",
     lineCap: "round"
   });
 
-  // Layer 3: Unified with Main for thickness consistency
   routeHighlight = L.polyline(routePoints, {
-    color: "#1E40AF",
+    color: "#3b82f6", // Brighter Blue Highlight
     weight: weights.highlight,
-    opacity: 1,
+    opacity: 0.8,
     lineJoin: "round",
     lineCap: "round"
   });
 
   // Add all to group
   currentRouteLayers.addLayer(routeShadow);
-  currentRouteLayers.addLayer(routeMain);
+  currentRouteLayers.addLayer(completedRouteLayer);
+  currentRouteLayers.addLayer(remainingRouteLayer);
   currentRouteLayers.addLayer(routeHighlight);
   currentRouteLayers.addTo(map);
 
+  // Initial progress update
+  updateRouteProgress();
+
   // Smart Zoom
-  map.fitBounds(routeMain.getBounds(), {
+  map.fitBounds(remainingRouteLayer.getBounds(), {
     padding: [80, 80],
     maxZoom: 19,
     animate: true,
@@ -215,6 +238,36 @@ function drawRoute(routePoints) {
   // Attach Zoom Listener
   map.off('zoomend', updateRouteStyle);
   map.on('zoomend', updateRouteStyle);
+}
+
+// Update Route Coloring based on index
+function updateRouteProgress() {
+  if (!activeRoutePoints || !completedRouteLayer || !remainingRouteLayer) return;
+
+  const completed = activeRoutePoints.slice(0, activeRouteIndex + 1);
+  const remaining = activeRoutePoints.slice(activeRouteIndex);
+
+  completedRouteLayer.setLatLngs(completed);
+  remainingRouteLayer.setLatLngs(remaining);
+
+  // Also update highlight to only show on remaining part
+  if (routeHighlight) {
+    routeHighlight.setLatLngs(remaining);
+  }
+}
+
+// 🚀 PROGRESS TRACKING: Computes distance from current position to end
+function calculateRemainingDistance() {
+  if (!activeRoutePoints || activeRoutePoints.length === 0) return 0;
+
+  let distance = 0;
+  // Sum distance from the NEXT node to the end
+  for (let i = activeRouteIndex; i < activeRoutePoints.length - 1; i++) {
+    const p1 = L.latLng(activeRoutePoints[i].lat, activeRoutePoints[i].lng);
+    const p2 = L.latLng(activeRoutePoints[i + 1].lat, activeRoutePoints[i + 1].lng);
+    distance += p1.distanceTo(p2);
+  }
+  return distance;
 }
 
 // 3. MAIN WRAPPER (Easy to use)
@@ -642,8 +695,258 @@ function closeInfoPanel() {
   setTimeout(() => {
     map.invalidateSize();
   }, 300);
+  // 🆕 ADD THIS
+  stopLocationTracking();
+
+  if (locationBtn) {
+    locationBtn.classList.remove("active");
+  }
+
 }
 
+// ==========================================
+// 📍 USER LOCATION TRACKING MODULE
+// ==========================================
+
+let userLocationMarker = null;
+let userAccuracyCircle = null;
+let watchId = null;
+let userCurrentLocation = null;
+let isTrackingLocation = false;
+let locationUpdateInterval = null;
+
+// Demo mode for testing (simulates movement)
+const DEMO_MODE = true; // Set to false for real GPS
+let demoLat = 12.923163;
+let demoLng = 80.120584;
+
+function initializeLocationTracking() {
+  console.log("🔵 Initializing location tracking...");
+
+  if (!navigator.geolocation && !DEMO_MODE) {
+    console.warn("❌ Geolocation not supported");
+    alert("Location services are not available on this device.");
+    return false;
+  }
+
+  createUserLocationMarker();
+  return true;
+}
+
+function createUserLocationMarker() {
+  if (userLocationMarker) {
+    map.removeLayer(userLocationMarker);
+  }
+  if (userAccuracyCircle) {
+    map.removeLayer(userAccuracyCircle);
+  }
+
+  const userIcon = L.divIcon({
+    className: 'user-location-marker',
+    html: `
+      <div class="user-dot">
+        <div class="dot-inner"></div>
+        <div class="pulse-ring"></div>
+      </div>
+    `,
+    iconSize: [30, 30],
+    iconAnchor: [15, 15]
+  });
+
+  userLocationMarker = L.marker([12.923163, 80.120584], {
+    icon: userIcon,
+    zIndexOffset: 2000
+  });
+
+  console.log("✅ User location marker created");
+}
+
+function startLocationTracking() {
+  if (isTrackingLocation) {
+    console.log("ℹ️ Location tracking already active");
+    return;
+  }
+
+  isTrackingLocation = true;
+  console.log("🚀 Starting location tracking...");
+
+  if (DEMO_MODE) {
+    startDemoTracking();
+  } else {
+    startGPSTracking();
+  }
+}
+
+function startGPSTracking() {
+  const options = {
+    enableHighAccuracy: true,
+    maximumAge: 3000,
+    timeout: 10000
+  };
+
+  watchId = navigator.geolocation.watchPosition(
+    onLocationSuccess,
+    onLocationError,
+    options
+  );
+
+  console.log("📡 GPS tracking active");
+}
+
+function onLocationSuccess(position) {
+  const lat = position.coords.latitude;
+  const lng = position.coords.longitude;
+  const accuracy = position.coords.accuracy;
+
+  console.log(`📍 GPS Update: ${lat.toFixed(6)}, ${lng.toFixed(6)} (±${Math.round(accuracy)}m)`);
+  updateUserLocation(lat, lng, accuracy);
+}
+
+function onLocationError(error) {
+  console.error("❌ GPS Error:", error.message);
+
+  switch (error.code) {
+    case error.PERMISSION_DENIED:
+      alert("Location permission denied. Please enable location access.");
+      break;
+    case error.POSITION_UNAVAILABLE:
+      console.warn("Position unavailable, using last known location");
+      break;
+    case error.TIMEOUT:
+      console.warn("Location request timed out");
+      break;
+  }
+}
+
+function startDemoTracking() {
+  if (!navigationRoutePoints || navigationRoutePoints.length === 0) {
+    console.warn("❌ No route available for navigation");
+    return;
+  }
+
+  routeProgressIndex = 0;
+
+  locationUpdateInterval = setInterval(() => {
+    if (routeProgressIndex >= navigationRoutePoints.length) {
+      console.log("🏁 Destination reached");
+      stopLocationTracking();
+      return;
+    }
+
+    const point = navigationRoutePoints[routeProgressIndex];
+    activeRouteIndex = routeProgressIndex; // Sync for distance calculation
+    updateUserLocation(point.lat, point.lng, 10);
+
+    routeProgressIndex++;
+  }, 2000);
+}
+
+
+function updateUserLocation(lat, lng, accuracy) {
+  userCurrentLocation = L.latLng(lat, lng);
+
+  if (!map.hasLayer(userLocationMarker)) {
+    userLocationMarker.addTo(map);
+  }
+
+  userLocationMarker.setLatLng(userCurrentLocation);
+
+  if (userAccuracyCircle) {
+    userAccuracyCircle.setLatLng(userCurrentLocation);
+    userAccuracyCircle.setRadius(accuracy);
+  } else {
+    userAccuracyCircle = L.circle(userCurrentLocation, {
+      radius: accuracy,
+      color: '#4A90E2',
+      fillColor: '#4A90E2',
+      fillOpacity: 0.1,
+      weight: 1,
+      opacity: 0.3
+    }).addTo(map);
+  }
+
+  if (isNavigating) {
+    centerMapOnUser();
+
+    // Update live progress visuals
+    updateRouteProgress();
+
+    // Update live progress stats
+    const remaining = calculateRemainingDistance();
+    const timeMin = Math.ceil(remaining / 75); // 75m/min walking speed
+
+    const distEl = document.getElementById("navDist");
+    const timeEl = document.getElementById("navTime");
+
+    if (distEl) distEl.innerText = remaining < 1000 ? Math.round(remaining) + " m" : (remaining / 1000).toFixed(1) + " km";
+    if (timeEl) timeEl.innerText = timeMin + " min";
+  }
+}
+
+function centerMapOnUser(animated = true) {
+  if (!userCurrentLocation) return;
+
+  if (animated) {
+    map.flyTo(userCurrentLocation, map.getZoom(), {
+      duration: 0.5,
+      easeLinearity: 0.5
+    });
+  } else {
+    map.panTo(userCurrentLocation);
+  }
+}
+
+function stopLocationTracking() {
+  if (!isTrackingLocation) return;
+
+  console.log("⏹️ Stopping location tracking");
+
+  isTrackingLocation = false;
+
+  if (watchId !== null) {
+    navigator.geolocation.clearWatch(watchId);
+    watchId = null;
+  }
+
+  if (locationUpdateInterval) {
+    clearInterval(locationUpdateInterval);
+    locationUpdateInterval = null;
+  }
+
+  if (userLocationMarker && map.hasLayer(userLocationMarker)) {
+    map.removeLayer(userLocationMarker);
+  }
+
+  if (userAccuracyCircle && map.hasLayer(userAccuracyCircle)) {
+    map.removeLayer(userAccuracyCircle);
+  }
+}
+
+// Location button handler
+const locationBtn = document.getElementById("locationBtn");
+
+if (locationBtn) {
+  locationBtn.addEventListener("click", () => {
+    if (!isTrackingLocation) {
+      if (initializeLocationTracking()) {
+        startLocationTracking();
+        locationBtn.classList.add("active");
+      }
+    } else {
+      centerMapOnUser(true);
+    }
+  });
+}
+
+// Global access
+window.userLocationTracking = {
+  start: startLocationTracking,
+  stop: stopLocationTracking,
+  center: centerMapOnUser,
+  getCurrentLocation: () => userCurrentLocation
+};
+
+console.log("✅ Location tracking module loaded");
 // ===== SMART SEARCH LOGIC =====
 const searchInput = document.getElementById('searchInput');
 const searchSuggestions = document.getElementById('searchSuggestions');
@@ -773,7 +1076,7 @@ function applySettings() {
 
 function updateMapTiles() {
   if (currentMapType === "satellite") {
-    // Satellite Tiles (Esri World Imagery)
+    // Satellite Tiles (Esri World Imagery
     tileLayer.setUrl('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}');
   } else {
     // Default: Clean Academic Maps (No Labels)
@@ -965,7 +1268,8 @@ function endMapPickMode() {
 startNavBtn.addEventListener("click", () => {
   if (!currentDestination) return;
 
-  let startForRoute = currentStartPoint;
+  // Use GPS location if available
+  let startForRoute = userCurrentLocation || currentStartPoint;
 
   if (!startForRoute) {
     // MOCK GPS (Main Gate)
@@ -986,6 +1290,11 @@ startNavBtn.addEventListener("click", () => {
     if (tileLayer) tileLayer.setOpacity(1.0);
 
     drawRoute(points);
+
+    // 🆕 START LOCATION TRACKING AFTER ROUTE IS DRAWN
+    if (initializeLocationTracking()) {
+      startLocationTracking();
+    }
 
     // 📍 NAVIGATION MARKERS
     navMarkers.clearLayers();

@@ -1968,3 +1968,119 @@ body.navigating .custom-marker {
   height: 30px;
   background: rgba(255, 255, 255, 0.1);
 }
+
+/* ==========================================
+   📍 USER LOCATION MARKER STYLES
+   ========================================== */
+
+/* Container for user location marker */
+.user-location-marker {
+  z-index: 2000 !important;
+}
+
+/* Main blue dot */
+.user-dot {
+  position: relative;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Inner blue circle */
+.dot-inner {
+  width: 16px;
+  height: 16px;
+  background: #4A90E2;
+  border: 3px solid #ffffff;
+  border-radius: 50%;
+  box-shadow: 0 2px 8px rgba(74, 144, 226, 0.5);
+  position: relative;
+  z-index: 2;
+}
+
+/* Pulsing ring animation */
+.pulse-ring {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 30px;
+  height: 30px;
+  border: 2px solid #4A90E2;
+  border-radius: 50%;
+  opacity: 0;
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  z-index: 1;
+}
+
+/* Pulse animation */
+@keyframes pulse {
+  0% {
+    transform: translate(-50%, -50%) scale(0.8);
+    opacity: 1;
+  }
+
+  100% {
+    transform: translate(-50%, -50%) scale(2.5);
+    opacity: 0;
+  }
+}
+
+/* Active location button style */
+.location-btn.active {
+  background: rgba(74, 144, 226, 0.2);
+  color: #4A90E2;
+}
+
+.location-btn.active i {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Navigation mode: Enhanced blue dot */
+body.navigating .dot-inner {
+  width: 20px;
+  height: 20px;
+  background: linear-gradient(135deg, #4A90E2, #2E7DFF);
+  box-shadow: 0 4px 12px rgba(74, 144, 226, 0.6);
+  animation: dotPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes dotPulse {
+
+  0%,
+  100% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.15);
+  }
+}
+
+/* Accuracy circle styling (already handled by Leaflet) */
+.leaflet-interactive[stroke="#4A90E2"] {
+  pointer-events: none;
+}
+
+/* Dark mode adjustments */
+body:not(.light-mode) .dot-inner {
+  border-color: rgba(255, 255, 255, 0.9);
+}
+
+/* Light mode adjustments */
+body.light-mode .dot-inner {
+  border-color: #ffffff;
+  box-shadow: 0 2px 8px rgba(74, 144, 226, 0.4), 0 0 0 1px rgba(0, 0, 0, 0.1);
+}
