@@ -127,7 +127,20 @@ function calculateRoute(startLatLng, endLatLng) {
   }
 
   // D. Return Array of LatLngs
-  return routeKeys.map(keyToLatLng);
+  // 🆕 Fix: Visual Gap - Connect actual start/end to snapped nodes
+  const finalPath = routeKeys.map(keyToLatLng);
+
+  // Unshift start (if distance > 2m to avoid jagged start)
+  if (startLatLng.distanceTo(finalPath[0]) > 2) {
+    finalPath.unshift(startLatLng);
+  }
+
+  // Push end (if distance > 2m)
+  if (endLatLng.distanceTo(finalPath[finalPath.length - 1]) > 2) {
+    finalPath.push(endLatLng);
+  }
+
+  return finalPath;
 }
 
 // 2. RENDERING: Draws the route on the map
@@ -141,7 +154,7 @@ let remainingRouteLayer = null; // Blue portion
 let isNavigating = false;
 let navMarkers = L.layerGroup(); // To hold pulsing start and flag destination
 
-// Helper to calculate weights based on zoom (Touch-friendly & Premium feel)
+/* Helper to calculate weights based on zoom (Touch-friendly & Premium feel) */
 function getLayerWeights(zoom) {
   // Adaptive scaling: Route gets thicker as we zoom in
   let baseWeight = 12;
@@ -358,6 +371,11 @@ fetch("mcc-boundary.geojson")
 
     // Load paths ONLY after boundary is set
     loadPaths();
+
+    // 🆕 Always show user location (pulsing)
+    if (initializeLocationTracking()) {
+      startLocationTracking();
+    }
   });
 
 function loadPaths() {
@@ -753,10 +771,19 @@ function createUserLocationMarker() {
     iconAnchor: [15, 15]
   });
 
-  userLocationMarker = L.marker([12.923163, 80.120584], {
+  // 🆕 Fix: Persist location if it exists
+  const initialLat = (userCurrentLocation) ? userCurrentLocation.lat : 12.923163;
+  const initialLng = (userCurrentLocation) ? userCurrentLocation.lng : 80.120584;
+
+  userLocationMarker = L.marker([initialLat, initialLng], {
     icon: userIcon,
     zIndexOffset: 2000
   });
+
+  // Ensure current location object is set if it was null (first run)
+  if (!userCurrentLocation) {
+    userCurrentLocation = L.latLng(initialLat, initialLng);
+  }
 
   console.log("✅ User location marker created");
 }
@@ -819,12 +846,22 @@ function onLocationError(error) {
 }
 
 function startDemoTracking() {
+  // If no route, just show marker at current/default location (Idle Mode)
   if (!navigationRoutePoints || navigationRoutePoints.length === 0) {
-    console.warn("❌ No route available for navigation");
+    console.log("📍 Demo Mode: Idle (No Route)");
+    const lat = userCurrentLocation ? userCurrentLocation.lat : 12.923163;
+    const lng = userCurrentLocation ? userCurrentLocation.lng : 80.120584;
+    updateUserLocation(lat, lng, 10);
     return;
   }
 
   routeProgressIndex = 0;
+
+  // 🆕 Execute Step 0 immediately (Teleport to start)
+  const startPt = navigationRoutePoints[0];
+  activeRouteIndex = 0;
+  updateUserLocation(startPt.lat, startPt.lng, 10);
+  routeProgressIndex++;
 
   locationUpdateInterval = setInterval(() => {
     if (routeProgressIndex >= navigationRoutePoints.length) {
@@ -838,7 +875,7 @@ function startDemoTracking() {
     updateUserLocation(point.lat, point.lng, 10);
 
     routeProgressIndex++;
-  }, 2000);
+  }, 3500); // Slower speed (was 2000)
 }
 
 
@@ -880,7 +917,105 @@ function updateUserLocation(lat, lng, accuracy) {
 
     if (distEl) distEl.innerText = remaining < 1000 ? Math.round(remaining) + " m" : (remaining / 1000).toFixed(1) + " km";
     if (timeEl) timeEl.innerText = timeMin + " min";
+
+    // 🆕 Update Direction / Turn Instructions
+    updateNavigationInstructions();
   }
+}
+
+// 🆕 TURN DETECTION LOGIC
+// NOTE: At this phase, we prioritize distance-based guidance because time estimation requires stable real-time speed data.
+function updateNavigationInstructions() {
+  const instructions = getNextTurnInstruction(activeRoutePoints, activeRouteIndex);
+
+  const dirText = document.getElementById("directionText");
+  const dirSub = document.getElementById("directionSubText");
+  const dirIcon = document.getElementById("directionIcon");
+  const panel = document.getElementById("directionPanel");
+
+  if (!panel || !dirText) return;
+
+  // Show panel if hidden
+  if (panel.classList.contains("hidden")) {
+    panel.classList.remove("hidden");
+  }
+
+  // Update Text
+  dirText.innerText = instructions.text;
+
+  if (instructions.distance > 0) {
+    dirSub.innerText = `${Math.round(instructions.distance)}m remaining`;
+  } else {
+    dirSub.innerText = "";
+  }
+
+  // Update Icon
+  dirIcon.className = instructions.icon;
+  // Color Update
+  if (instructions.type === 'left' || instructions.type === 'right') {
+    dirIcon.style.color = '#f59e0b'; // Amber for turns
+  } else if (instructions.type === 'finish') {
+    dirIcon.style.color = '#10b981'; // Green for finish
+  } else {
+    dirIcon.style.color = '#3b82f6'; // Blue for straight
+  }
+}
+
+function getNextTurnInstruction(routePoints, currentIndex) {
+  // If near end
+  const remainingDist = calculateRemainingDistance();
+  if (remainingDist < 30) {
+    return { text: "Arriving at destination", distance: 0, icon: "ri-map-pin-user-fill", type: "finish" };
+  }
+
+  // Look ahead for the next significant turn
+  // We scan up to 5 nodes ahead to find a turn
+  for (let i = currentIndex; i < routePoints.length - 1; i++) {
+    if (i < 1) continue; // Need at least 2 prev points for angle
+
+    const p1 = routePoints[i - 1]; // Prev
+    const p2 = routePoints[i];   // Current vertex (Potential turn)
+    const p3 = routePoints[i + 1]; // Next
+
+    const angle = getAngle(p1, p2, p3);
+
+    // Detect Turn (> 30 degrees)
+    if (Math.abs(angle) > 30) {
+      // Calculate distance from user to this turn
+      // 1. Distance from user to next node (which is activeRoutePoints[activeRouteIndex+1] usually??)
+      // Actually, user is at userCurrentLocation. 
+      // But logic is simpler: Distance from user to p2.
+
+      const turnNode = L.latLng(p2.lat, p2.lng);
+      const distToTurn = userCurrentLocation.distanceTo(turnNode);
+
+      // Only show if reasonably close, else continue straight
+      if (distToTurn < 150) { // Notify 150m before turn
+        const turnType = angle > 0 ? "right" : "left";
+        const icon = angle > 0 ? "ri-corner-up-right-fill" : "ri-corner-up-left-fill";
+        return {
+          text: `Turn ${turnType} in ${Math.round(distToTurn)}m`,
+          distance: distToTurn,
+          icon: icon,
+          type: turnType
+        };
+      }
+    }
+  }
+
+  return { text: "Continue straight", distance: remainingDist, icon: "ri-arrow-up-circle-fill", type: "straight" };
+}
+
+function getAngle(p1, p2, p3) {
+  const angle1 = Math.atan2(p2.lng - p1.lng, p2.lat - p1.lat);
+  const angle2 = Math.atan2(p3.lng - p2.lng, p3.lat - p2.lat);
+  let diff = (angle2 - angle1) * (180 / Math.PI);
+
+  // Normalize to -180 to 180
+  if (diff > 180) diff -= 360;
+  if (diff < -180) diff += 360;
+
+  return diff;
 }
 
 function centerMapOnUser(animated = true) {
@@ -896,7 +1031,8 @@ function centerMapOnUser(animated = true) {
   }
 }
 
-function stopLocationTracking() {
+// 🆕 Feature: Keep marker visible if requested (for "Always On")
+function stopLocationTracking(keepMarker = false) {
   if (!isTrackingLocation) return;
 
   console.log("⏹️ Stopping location tracking");
@@ -913,14 +1049,19 @@ function stopLocationTracking() {
     locationUpdateInterval = null;
   }
 
-  if (userLocationMarker && map.hasLayer(userLocationMarker)) {
-    map.removeLayer(userLocationMarker);
-  }
+  // Only remove marker if explicitly NOT keeping it (e.g. privacy off)
+  if (!keepMarker) {
+    if (userLocationMarker && map.hasLayer(userLocationMarker)) {
+      map.removeLayer(userLocationMarker);
+    }
 
-  if (userAccuracyCircle && map.hasLayer(userAccuracyCircle)) {
-    map.removeLayer(userAccuracyCircle);
+    if (userAccuracyCircle && map.hasLayer(userAccuracyCircle)) {
+      map.removeLayer(userAccuracyCircle);
+    }
   }
 }
+
+
 
 // Location button handler
 const locationBtn = document.getElementById("locationBtn");
@@ -1183,6 +1324,10 @@ function openNavSetup(destinationItem) {
   currentStartPoint = null;
   document.querySelector('input[value="current"]').checked = true;
   document.getElementById("routeStats").classList.add("hidden");
+  document.getElementById("directionPanel").classList.add("hidden"); // 🆕 Fix: Hide direction panel
+
+  // 🆕 AUTO PREVIEW ROUTE
+  previewRouteLogic();
 }
 
 // 2. Back to Details
@@ -1191,6 +1336,9 @@ backToDetailsBtn.addEventListener("click", () => {
   panelDetails.classList.remove("hidden");
 
   // Clean up
+  // Exit preview mode if visible
+  if (currentRouteLayers) currentRouteLayers.clearLayers();
+
   if (tempStartMarker) {
     map.removeLayer(tempStartMarker);
     tempStartMarker = null;
@@ -1205,6 +1353,8 @@ startRadios.forEach(radio => {
     } else {
       if (tempStartMarker) map.removeLayer(tempStartMarker);
       currentStartPoint = null;
+      // 🔄 Re-preview with current location from start
+      previewRouteLogic();
     }
   });
 });
@@ -1242,6 +1392,9 @@ confirmStartBtn.addEventListener("click", () => {
 
   // Re-open Side Panel to Nav View
   document.body.classList.add("info-open");
+
+  // 🆕 Preview updated route
+  previewRouteLogic();
 });
 
 // Cancel Pick
@@ -1264,17 +1417,87 @@ function endMapPickMode() {
   confirmStartBtn.disabled = true;
 }
 
-// 5. START NAVIGATION
+// 5. START ACTIVE NAVIGATION (User Clicks Button)
 startNavBtn.addEventListener("click", () => {
+  // 🚩 ENTER NAVIGATION STATE
+  isNavigating = true;
+  document.body.classList.add("navigating");
+
+  // 🔅 NAVIGATION MODE: Keep map bright and reduce POI noise
+  if (tileLayer) tileLayer.setOpacity(1.0);
+
+  // 🆕 START LOCATION TRACKING
+  // Fix: Force restart to ensure demo loop begins (in case we were in Idle mode)
+  stopLocationTracking();
+
+  if (initializeLocationTracking()) {
+    startLocationTracking();
+    // Ensure specific speed for demo if needed
+  }
+
+  // 📍 NAVIGATION MARKERS
+  navMarkers.clearLayers();
+
+  // Start: Pulsing Blue Dot (Even Larger)
+  const points = navigationRoutePoints; // Already calculated in preview
+  if (!points || points.length === 0) {
+    alert("Please wait for route to calculate.");
+    return;
+  }
+
+  const startPoint = points[0];
+  const startMarker = L.circleMarker(startPoint, {
+    radius: 16,
+    fillColor: "#2E7DFF",
+    fillOpacity: 1,
+    color: "#fff",
+    weight: 4,
+    className: 'pulsing-marker'
+  }).addTo(navMarkers);
+
+  // Destination: Google Pin (Premium)
+  const endPoint = points[points.length - 1];
+  const destIcon = L.divIcon({
+    className: 'nav-dest-marker',
+    html: `
+        <div class="google-pin">
+          <i class="fas fa-map-marker-alt"></i>
+          <div class="pin-dot"></div>
+        </div>
+      `,
+    iconSize: [50, 60],
+    iconAnchor: [25, 60]
+  });
+  L.marker(endPoint, { icon: destIcon }).addTo(navMarkers);
+
+  navMarkers.addTo(map);
+
+  document.getElementById("routeStats").classList.remove("hidden");
+});
+
+// 6. ROUTE PREVIEW LOGIC
+function previewRouteLogic() {
   if (!currentDestination) return;
 
-  // Use GPS location if available
-  let startForRoute = userCurrentLocation || currentStartPoint;
+  // Determine Start Point based on User Selection
+  let startForRoute;
+  const useCurrent = document.querySelector('input[name="startType"][value="current"]').checked;
+
+  if (useCurrent) {
+    startForRoute = userCurrentLocation;
+  } else {
+    startForRoute = currentStartPoint;
+  }
 
   if (!startForRoute) {
-    // MOCK GPS (Main Gate)
-    startForRoute = L.latLng(12.923163, 80.120584);
-    console.log("📍 Using Default Current Location (Main Gate)");
+    if (useCurrent) {
+      // MOCK GPS (Main Gate) if checking current
+      startForRoute = L.latLng(12.923163, 80.120584);
+      console.log("📍 Using Default Current Location (Main Gate)");
+    } else {
+      // If custom but no point picked yet, do nothing
+      return;
+    }
   }
 
   const endForRoute = L.latLng(currentDestination.lat, currentDestination.lng);
@@ -1282,52 +1505,10 @@ startNavBtn.addEventListener("click", () => {
   const points = calculateRoute(startForRoute, endForRoute);
 
   if (points) {
-    // 🚩 ENTER NAVIGATION STATE
-    isNavigating = true;
-    document.body.classList.add("navigating");
-
-    // 🔅 NAVIGATION MODE: Keep map bright and reduce POI noise
-    if (tileLayer) tileLayer.setOpacity(1.0);
-
+    // Draw but do NOT start navigaton mode fully
     drawRoute(points);
 
-    // 🆕 START LOCATION TRACKING AFTER ROUTE IS DRAWN
-    if (initializeLocationTracking()) {
-      startLocationTracking();
-    }
-
-    // 📍 NAVIGATION MARKERS
-    navMarkers.clearLayers();
-
-    // Start: Pulsing Blue Dot (Even Larger)
-    const startPoint = points[0];
-    const startMarker = L.circleMarker(startPoint, {
-      radius: 16,
-      fillColor: "#2E7DFF",
-      fillOpacity: 1,
-      color: "#fff",
-      weight: 4,
-      className: 'pulsing-marker'
-    }).addTo(navMarkers);
-
-    // Destination: Google Pin (Premium)
-    const endPoint = points[points.length - 1];
-    const destIcon = L.divIcon({
-      className: 'nav-dest-marker',
-      html: `
-        <div class="google-pin">
-          <i class="fas fa-map-marker-alt"></i>
-          <div class="pin-dot"></div>
-        </div>
-      `,
-      iconSize: [50, 60],
-      iconAnchor: [25, 60]
-    });
-    L.marker(endPoint, { icon: destIcon }).addTo(navMarkers);
-
-    navMarkers.addTo(map);
-
-    // UPDATE STATS
+    // Show stats
     const totalDist = points.reduce((acc, pt, i) => {
       if (i === 0) return 0;
       return acc + pt.distanceTo(points[i - 1]);
@@ -1339,11 +1520,10 @@ startNavBtn.addEventListener("click", () => {
     document.getElementById("navTime").innerText = timeMin + " min";
 
     document.getElementById("routeStats").classList.remove("hidden");
-
   } else {
-    alert("Could not calculate a path. Try a closer starting point.");
+    // alert("Could not calculate a path. Try a closer starting point.");
   }
-});
+}
 
 // Override closeInfoPanel to reset view
 const originalClosePanel = closeInfoPanel;
@@ -1355,6 +1535,9 @@ closeInfoPanel = function () {
   isNavigating = false;
   document.body.classList.remove("navigating");
 
+  // 🆕 Fix: Stop movement immediately but KEEP MARKER visible
+  stopLocationTracking(true);
+
   // 🔆 RESTORE MAP App State
   if (tileLayer) tileLayer.setOpacity(1.0);
 
@@ -1364,6 +1547,9 @@ closeInfoPanel = function () {
 
   const routeStats = document.getElementById("routeStats");
   if (routeStats) routeStats.classList.add("hidden");
+
+  const dirPanel = document.getElementById("directionPanel");
+  if (dirPanel) dirPanel.classList.add("hidden"); // 🆕 Fix: Ensure hidden on close
 
   // Clear search state
   currentDestination = null;
