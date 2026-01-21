@@ -157,11 +157,11 @@ let navMarkers = L.layerGroup(); // To hold pulsing start and flag destination
 /* Helper to calculate weights based on zoom (Touch-friendly & Premium feel) */
 function getLayerWeights(zoom) {
   // Adaptive scaling: Route gets thicker as we zoom in
-  let baseWeight = 12;
-  if (zoom === 17) baseWeight = 14;
-  if (zoom === 18) baseWeight = 20;
-  if (zoom === 19) baseWeight = 28;
-  if (zoom >= 20) baseWeight = 36;
+  let baseWeight = 8; // Slightly smaller base (was 12)
+  if (zoom === 17) baseWeight = 10;
+  if (zoom === 18) baseWeight = 14;
+  if (zoom === 19) baseWeight = 20;
+  if (zoom >= 20) baseWeight = 28;
 
   return {
     shadow: baseWeight * 1.15, // Tighter shadow
@@ -171,7 +171,7 @@ function getLayerWeights(zoom) {
 }
 
 function updateRouteStyle() {
-  if (isNavigating && map) {
+  if (map && (routeShadow || remainingRouteLayer)) {
     const weights = getLayerWeights(map.getZoom());
     if (routeShadow) routeShadow.setStyle({ weight: weights.shadow });
     if (completedRouteLayer) completedRouteLayer.setStyle({ weight: weights.main });
