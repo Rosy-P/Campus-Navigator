@@ -15,6 +15,11 @@ let navigationRoutePoints = [];
 let routeProgressIndex = 0;
 let activeRoutePoints = [];
 let activeRouteIndex = 0;
+let isPaused = false;
+let isMuted = false;
+let lastRerouteTime = 0; // Throttling
+const REROUTE_THRESHOLD = 30; // 30 meters
+const REROUTE_COOLDOWN = 6000; // 6 seconds
 
 
 // Convert lat/lng to unique node key
@@ -180,7 +185,7 @@ function updateRouteStyle() {
   }
 }
 
-function drawRoute(routePoints) {
+function drawRoute(routePoints, shouldFitBounds = true) {
   if (!routePoints || routePoints.length < 2) return;
 
   // Clear previous route
@@ -241,12 +246,14 @@ function drawRoute(routePoints) {
   updateRouteProgress();
 
   // Smart Zoom
-  map.fitBounds(remainingRouteLayer.getBounds(), {
-    padding: [80, 80],
-    maxZoom: 19,
-    animate: true,
-    duration: 1.5
-  });
+  if (shouldFitBounds) {
+    map.fitBounds(remainingRouteLayer.getBounds(), {
+      padding: [80, 80],
+      maxZoom: 19,
+      animate: true,
+      duration: 1.5
+    });
+  }
 
   // Attach Zoom Listener
   map.off('zoomend', updateRouteStyle);
@@ -604,11 +611,7 @@ function openInfoPanel(item, type) {
   const zone = "Main Campus";
   document.getElementById("infoSubtitle").innerText = `${category} • ${zone}`;
 
-  // 2. Walk Info (Mock calculation from Main Gate)
-  // Main Gate: 12.923163, 80.120584
-  const startLat = 12.923163;
-  const startLng = 80.120584;
-  updateWalkInfo(startLat, startLng, item.lat, item.lng);
+  // 2. Walk Info Removed (Requested by user)
 
   // 3. Header Image
   const mainImage = document.getElementById("infoImage");
@@ -730,11 +733,12 @@ let userLocationMarker = null;
 let userAccuracyCircle = null;
 let watchId = null;
 let userCurrentLocation = null;
+let previousUserLocation = null;
 let isTrackingLocation = false;
 let locationUpdateInterval = null;
 
 // Demo mode for testing (simulates movement)
-const DEMO_MODE = true; // Set to false for real GPS
+let DEMO_MODE = localStorage.getItem("demo-mode") === "true"; // Dynamic toggle
 let demoLat = 12.923163;
 let demoLng = 80.120584;
 
@@ -777,7 +781,16 @@ function createUserLocationMarker() {
 
   userLocationMarker = L.marker([initialLat, initialLng], {
     icon: userIcon,
-    zIndexOffset: 2000
+    zIndexOffset: 2000,
+    draggable: DEMO_MODE // 🆕 Enable dragging only in demo mode
+  });
+
+  // 🆕 USER REQUEST: DRAG LOGIC FOR TESTING
+  userLocationMarker.on('dragend', (e) => {
+    if (!DEMO_MODE) return;
+    const { lat, lng } = e.target.getLatLng();
+    console.log(`📍 User manually drifted to: ${lat.toFixed(6)}, ${lng.toFixed(6)}`);
+    updateUserLocation(lat, lng, 10);
   });
 
   // Ensure current location object is set if it was null (first run)
@@ -878,8 +891,67 @@ function startDemoTracking() {
   }, 3500); // Slower speed (was 2000)
 }
 
+function pauseNavigation() {
+  if (!isNavigating) return;
+  isPaused = true;
+  document.body.classList.add("paused");
+
+  // Update button UI
+  const pauseBtn = document.getElementById("navPauseBtn");
+  if (pauseBtn) {
+    pauseBtn.innerHTML = '<i class="ri-play-line"></i><span>Resume</span>';
+    pauseBtn.classList.add("resuming");
+  }
+
+  // Freeze demo movement
+  if (locationUpdateInterval) {
+    clearInterval(locationUpdateInterval);
+    locationUpdateInterval = null;
+  }
+  console.log("⏸ Navigation Paused");
+}
+
+function resumeNavigation() {
+  if (!isNavigating) return;
+  isPaused = false;
+  document.body.classList.remove("paused");
+
+  // Update button UI
+  const pauseBtn = document.getElementById("navPauseBtn");
+  if (pauseBtn) {
+    pauseBtn.innerHTML = '<i class="ri-pause-line"></i><span>Pause</span>';
+    pauseBtn.classList.remove("resuming");
+  }
+
+  // Resume movement (Demo)
+  if (DEMO_MODE) {
+    startDemoTracking();
+  } else {
+    startGPSTracking();
+  }
+
+  // Recenter immediately
+  centerMapOnUser();
+  console.log("▶ Navigation Resumed");
+}
+
+function endNavigation() {
+  // Use the existing closeInfoPanel logic which already handles cleanup
+  closeInfoPanel();
+  console.log("❌ Navigation Ended");
+}
+
+function toggleMute() {
+  isMuted = !isMuted;
+  const muteBtn = document.getElementById("navMuteBtn");
+  if (muteBtn) {
+    muteBtn.innerHTML = isMuted ? '<i class="ri-volume-mute-line"></i><span>Unmute</span>' : '<i class="ri-volume-up-line"></i><span>Mute</span>';
+  }
+}
+
 
 function updateUserLocation(lat, lng, accuracy) {
+  previousUserLocation = userCurrentLocation;
   userCurrentLocation = L.latLng(lat, lng);
 
   if (!map.hasLayer(userLocationMarker)) {
@@ -903,7 +975,9 @@ function updateUserLocation(lat, lng, accuracy) {
   }
 
   if (isNavigating) {
-    centerMapOnUser();
+    if (!isPaused) {
+      centerMapOnUser();
+    }
 
     // Update live progress visuals
     updateRouteProgress();
@@ -918,9 +992,125 @@ function updateUserLocation(lat, lng, accuracy) {
     if (distEl) distEl.innerText = remaining < 1000 ? Math.round(remaining) + " m" : (remaining / 1000).toFixed(1) + " km";
     if (timeEl) timeEl.innerText = timeMin + " min";
 
+    // 🆕 Update ACTIVE TOP PANEL stats
+    const activeTimeEl = document.getElementById("activeTimeLeft");
+    const activeDistEl = document.getElementById("activeDistLeft");
+
+    if (activeDistEl) activeDistEl.innerText = remaining < 1000 ? Math.round(remaining) + " m" : (remaining / 1000).toFixed(1) + " km";
+    if (activeTimeEl) activeTimeEl.innerText = timeMin + " min";
+
+    // 🆕 PHASE 3: Off-Route Detection
+    checkOffRouteStatus();
+
     // 🆕 Update Direction / Turn Instructions
     updateNavigationInstructions();
   }
+}
+
+// ---------------- PHASE 3: INTELLIGENT NAVIGATION ----------------
+
+function checkOffRouteStatus() {
+  if (!isNavigating || isPaused || !userCurrentLocation || !activeRoutePoints || activeRoutePoints.length < 2) return;
+
+  // 1. Calculate distance to the nearest point on the route
+  let minDistance = Infinity;
+  let nearestIndex = activeRouteIndex;
+
+  // We check segments around the current index to be efficient
+  // Scanning 3 segments ahead and 1 behind
+  const startScan = Math.max(0, activeRouteIndex - 1);
+  const endScan = Math.min(activeRoutePoints.length - 1, activeRouteIndex + 3);
+
+  for (let i = startScan; i < endScan; i++) {
+    const p1 = activeRoutePoints[i];
+    const p2 = activeRoutePoints[i + 1];
+
+    const dist = getDistanceToSegment(userCurrentLocation, p1, p2);
+    if (dist < minDistance) {
+      minDistance = dist;
+      // If user is actually on a future segment, update activeRouteIndex
+      if (dist < 10) nearestIndex = i;
+    }
+  }
+
+  // 2. Update Progress if user is moving forward
+  if (nearestIndex > activeRouteIndex) {
+    activeRouteIndex = nearestIndex;
+    updateRouteProgress();
+  } else if (nearestIndex === activeRouteIndex && previousUserLocation) {
+    // Check if moving AWAY from the next node
+    const nextPt = activeRoutePoints[activeRouteIndex + 1];
+    if (nextPt) {
+      const currentDist = userCurrentLocation.distanceTo(nextPt);
+      const prevDist = previousUserLocation.distanceTo(nextPt);
+      if (currentDist > prevDist + 1) { // 1 meter tolerance
+        // Moving away!
+        console.log("🚩 User moving in wrong direction");
+      }
+    }
+  }
+
+  // 3. Detect Off-Route State
+  if (minDistance > REROUTE_THRESHOLD) {
+    const now = Date.now();
+    if (now - lastRerouteTime > REROUTE_COOLDOWN) {
+      console.warn(`🚨 OFF-ROUTE DETECTED! Distance: ${Math.round(minDistance)}m`);
+      handleReroute();
+      lastRerouteTime = now;
+    }
+  }
+}
+
+async function handleReroute() {
+  const activeDirText = document.getElementById("activeDirText");
+  const activeDirSubText = document.getElementById("activeDirSubText");
+  const activeDirIcon = document.getElementById("activeDirIcon");
+
+  // Visual feedback
+  if (activeDirText) activeDirText.innerText = "Recalculating...";
+  if (activeDirSubText) activeDirSubText.innerText = "Finding new route";
+  if (activeDirIcon) {
+    activeDirIcon.className = "ri-refresh-line spin-animation";
+  }
+
+  // Calculate new route from current position to existing destination
+  if (!currentDestination) return;
+
+  const endLatLng = L.latLng(currentDestination.lat, currentDestination.lng);
+  const newPoints = calculateRoute(userCurrentLocation, endLatLng);
+
+  if (newPoints) {
+    console.log("🔄 Rerouting successful");
+    // Update route without resetting everything
+    navigationRoutePoints = newPoints;
+    activeRoutePoints = newPoints;
+    activeRouteIndex = 0;
+
+    // Update Draw (No zoom reset - keep it smooth)
+    drawRoute(newPoints, false);
+
+    // Resume Demo if active
+    if (DEMO_MODE && !isPaused) {
+      // We need to reset the demo pointer to 0 because the route changed
+      routeProgressIndex = 0;
+    }
+  }
+}
+
+// Math Utility: Distance from Point to Line Segment in METERS
+function getDistanceToSegment(p, a, b) {
+  const lat = p.lat, lng = p.lng;
+  const x1 = a.lat, y1 = a.lng;
+  const x2 = b.lat, y2 = b.lng;
+
+  const L2 = (x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1);
+  if (L2 === 0) return p.distanceTo(a);
+
+  let t = ((lat - x1) * (x2 - x1) + (lng - y1) * (y2 - y1)) / L2;
+  t = Math.max(0, Math.min(1, t));
+
+  const projection = L.latLng(x1 + t * (x2 - x1), y1 + t * (y2 - y1));
+  return p.distanceTo(projection);
 }
 
 // 🆕 TURN DETECTION LOGIC
@@ -959,10 +1149,36 @@ function updateNavigationInstructions() {
   } else {
     dirIcon.style.color = '#3b82f6'; // Blue for straight
   }
+  // 🆕 Update ACTIVE TOP PANEL (Stage 4)
+  const activeDirText = document.getElementById("activeDirText");
+  const activeDirSubText = document.getElementById("activeDirSubText");
+  const activeDirIcon = document.getElementById("activeDirIcon");
+
+  if (activeDirText) {
+    activeDirText.innerText = instructions.text;
+    if (activeDirSubText) {
+      activeDirSubText.innerText = instructions.distance > 0 ? `in ${Math.round(instructions.distance)}m` : "";
+    }
+    if (activeDirIcon) {
+      activeDirIcon.className = instructions.icon;
+    }
+  }
 }
 
 function getNextTurnInstruction(routePoints, currentIndex) {
-  // If near end
+  // 1. Check for Wrong Direction / U-Turn
+  if (routePoints.length > currentIndex + 1 && previousUserLocation) {
+    const nextPt = L.latLng(routePoints[currentIndex + 1].lat, routePoints[currentIndex + 1].lng);
+    const currentDist = userCurrentLocation.distanceTo(nextPt);
+    const prevDist = previousUserLocation.distanceTo(nextPt);
+
+    if (currentDist > prevDist + 1.5) { // 1.5 meter movement threshold
+      return { text: "Make a U-turn", distance: 0, icon: "ri-arrow-go-back-fill", type: "u-turn" };
+    }
+  }
+
+
+  // 2. If near end
   const remainingDist = calculateRemainingDistance();
   if (remainingDist < 30) {
     return { text: "Arriving at destination", distance: 0, icon: "ri-map-pin-user-fill", type: "finish" };
@@ -1075,6 +1291,30 @@ if (locationBtn) {
       }
     } else {
       centerMapOnUser(true);
+    }
+  });
+}
+
+// 🆕 SYNC DEMO MODE TOGGLE
+const demoToggle = document.getElementById("demoModeToggle");
+if (demoToggle) {
+  demoToggle.checked = DEMO_MODE;
+  demoToggle.addEventListener("change", (e) => {
+    DEMO_MODE = e.target.checked;
+    localStorage.setItem("demo-mode", DEMO_MODE);
+
+    // Update marker dragging state immediately
+    if (userLocationMarker) {
+      if (DEMO_MODE) userLocationMarker.dragging.enable();
+      else userLocationMarker.dragging.disable();
+    }
+
+    console.log(`🎮 Simulation Mode: ${DEMO_MODE ? 'ENABLED' : 'DISABLED'}`);
+
+    // Restart tracking if already active to switch between GPS/Demo
+    if (isTrackingLocation) {
+      stopLocationTracking(true);
+      startLocationTracking();
     }
   });
 }
@@ -1322,12 +1562,12 @@ function openNavSetup(destinationItem) {
 
   // Reset State
   currentStartPoint = null;
-  document.querySelector('input[value="current"]').checked = true;
+  startRadios.forEach(radio => radio.checked = false);
   document.getElementById("routeStats").classList.add("hidden");
   document.getElementById("directionPanel").classList.add("hidden"); // 🆕 Fix: Hide direction panel
 
-  // 🆕 AUTO PREVIEW ROUTE
-  previewRouteLogic();
+  // 🆕 USER REQUEST: Logic for auto-preview removed. 
+  // User must choose a starting point explicitly now.
 }
 
 // 2. Back to Details
@@ -1362,6 +1602,10 @@ startRadios.forEach(radio => {
 // 4. Map Pick Mode
 function startMapPickMode() {
   isPickingStart = true;
+
+  // 🆕 USER REQUEST: Clear existing preview route and stats when picking a new start
+  if (currentRouteLayers) currentRouteLayers.clearLayers();
+  document.getElementById("routeStats").classList.add("hidden");
 
   // Hide Side Panel temporarily
   document.body.classList.remove("info-open");
@@ -1473,7 +1717,28 @@ startNavBtn.addEventListener("click", () => {
   navMarkers.addTo(map);
 
   document.getElementById("routeStats").classList.remove("hidden");
+
+  // 🆕 SHOW ACTIVE NAV UI (NEW)
+  const activeNavUI = document.getElementById("activeNavUI");
+  if (activeNavUI) {
+    activeNavUI.classList.remove("hidden");
+  }
+
+  // Hide Search Bar and Sidebar
+  document.getElementById("searchBar").classList.add("hidden");
+  document.body.classList.add("sidebar-collapsed");
+  document.body.classList.remove("info-open"); // Hide panel but internal state is still 'navigating'
 });
+
+// 🆕 ATTACH NEW EVENT LISTENERS
+document.getElementById("navPauseBtn").addEventListener("click", () => {
+  if (isPaused) resumeNavigation();
+  else pauseNavigation();
+});
+
+document.getElementById("navEndBtn").addEventListener("click", endNavigation);
+document.getElementById("navMuteBtn").addEventListener("click", toggleMute);
+document.getElementById("navRecenterBtn").addEventListener("click", () => centerMapOnUser(true));
 
 // 6. ROUTE PREVIEW LOGIC
 function previewRouteLogic() {
@@ -1550,6 +1815,15 @@ closeInfoPanel = function () {
 
   const dirPanel = document.getElementById("directionPanel");
   if (dirPanel) dirPanel.classList.add("hidden"); // 🆕 Fix: Ensure hidden on close
+
+  // 🆕 HIDE ACTIVE NAV UI
+  const activeNavUI = document.getElementById("activeNavUI");
+  if (activeNavUI) activeNavUI.classList.add("hidden");
+
+  // RESTORE UI
+  document.getElementById("searchBar").classList.remove("hidden");
+  isPaused = false;
+  document.body.classList.remove("paused");
 
   // Clear search state
   currentDestination = null;

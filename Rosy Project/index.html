@@ -136,17 +136,8 @@
               </button>
             </div>
 
-            <hr class="divider">
 
-            <!-- Walk Info -->
-            <div class="walk-info">
-              <span class="walk-icon">🚶</span>
-              <span id="walkDist">280m</span>
-              <span class="dot">•</span>
-              <span id="walkTime">4 min walk</span>
-            </div>
 
-            <hr class="divider">
 
             <!-- About Section -->
             <div class="about-section">
@@ -189,7 +180,7 @@
                 <label>Starting Point</label>
                 <div class="toggle-start-vertical">
                   <label class="radio-card">
-                    <input type="radio" name="startType" value="current" checked>
+                    <input type="radio" name="startType" value="current">
                     <div class="card-content">
                       <div class="icon-box blue"><i class="ri-gps-fill"></i></div>
                       <div class="text-box">
@@ -378,9 +369,9 @@
               </label>
             </div>
             <div class="toggle-item">
-              <span class="setting-label">Use Last Known Location</span>
+              <span class="setting-label">Simulation Mode (Demo)</span>
               <label class="switch">
-                <input type="checkbox" id="privacyLastKnown" checked>
+                <input type="checkbox" id="demoModeToggle">
                 <span class="slider round"></span>
               </label>
             </div>
@@ -423,6 +414,45 @@
     <div class="pill-text">Tap map to set start</div>
     <button class="pill-btn" id="confirmStartPoint" disabled>Confirm</button>
     <button class="pill-close" id="cancelMapPick"><i class="ri-close-line"></i></button>
+  </div>
+
+
+  <!-- ACTIVE NAVIGATION UI (NEW) -->
+  <div id="activeNavUI" class="active-nav-container hidden">
+    <!-- Top Direction Panel -->
+    <div class="top-direction-panel">
+      <div class="dir-icon-outer">
+        <i class="ri-arrow-up-circle-fill" id="activeDirIcon"></i>
+      </div>
+      <div class="dir-content">
+        <h2 id="activeDirText">Continue straight</h2>
+        <p id="activeDirSubText">for 60m</p>
+      </div>
+      <div class="arrival-tile">
+        <span class="arrival-time" id="activeTimeLeft">4 min</span>
+        <span class="arrival-dist" id="activeDistLeft">280m</span>
+      </div>
+    </div>
+
+    <!-- Bottom Navigation Controls -->
+    <div class="bottom-nav-controls">
+      <button class="nav-control-btn pause-btn" id="navPauseBtn" title="Pause">
+        <i class="ri-pause-line"></i>
+        <span>Pause</span>
+      </button>
+      <button class="nav-control-btn mute-btn" id="navMuteBtn" title="Mute">
+        <i class="ri-volume-up-line"></i>
+        <span>Mute</span>
+      </button>
+      <button class="nav-control-btn recenter-btn" id="navRecenterBtn" title="Recenter">
+        <i class="ri-focus-3-line"></i>
+        <span>Recenter</span>
+      </button>
+      <button class="nav-control-btn end-btn" id="navEndBtn" title="End Navigation">
+        <i class="ri-close-line"></i>
+        <span>End</span>
+      </button>
+    </div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
