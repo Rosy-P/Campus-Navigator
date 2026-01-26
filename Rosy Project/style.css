@@ -437,11 +437,36 @@ nav a.emergency {
 }
 
 /* ---------------- MAP CONTAINER ---------------- */
-.map-container {
+/* 🆕 Navigation Mode De-emphasis */
+body.navigating .leaflet-marker-icon:not(.user-location-marker):not(.nav-dest-marker) {
+  filter: grayscale(1) opacity(0.3) scale(0.8);
+  pointer-events: none;
+  transition: all 0.5s ease;
+}
 
+body.navigating .quick-access {
+  display: none;
+}
+
+body.navigating .search-container {
+  opacity: 0;
+  pointer-events: none;
+}
+
+#map {
+  width: 100%;
+  height: 100%;
+  transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.map-container {
   height: 100%;
   width: 100%;
   position: relative;
+  overflow: hidden;
+  /* Ensure rotated map doesn't show edges */
+  background: #0f172a;
+  /* Match backdrop */
 }
 
 /* ---------------- MAP ---------------- */
@@ -2350,4 +2375,60 @@ body:not(.light-mode) .dot-inner {
 body.light-mode .dot-inner {
   border-color: #ffffff;
   box-shadow: 0 2px 8px rgba(74, 144, 226, 0.4), 0 0 0 1px rgba(0, 0, 0, 0.1);
+}
+
+/* 🆕 User Marker with Heading Arrow */
+.user-location-marker {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+}
+
+.user-dot {
+  position: relative;
+  width: 20px;
+  height: 20px;
+  background: #4A90E2;
+  border: 3px solid white;
+  border-radius: 50%;
+  box-shadow: 0 0 10px rgba(74, 144, 226, 0.5);
+  z-index: 10;
+}
+
+.user-arrow {
+  position: absolute;
+  top: -15px;
+  left: 50%;
+  transform: translateX(-50%) rotate(0deg);
+  width: 0;
+  height: 0;
+  border-left: 10px solid transparent;
+  border-right: 10px solid transparent;
+  border-bottom: 20px solid #4A90E2;
+  filter: drop-shadow(0 0 2px white);
+  transition: transform 0.3s ease;
+  transform-origin: 50% 25px;
+  /* Adjust based on icon size and positioning */
+  z-index: 5;
+}
+
+.pulse-ring {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background: rgba(74, 144, 226, 0.4);
+  border-radius: 50%;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+
+  100% {
+    transform: scale(3);
+    opacity: 0;
+  }
 }
