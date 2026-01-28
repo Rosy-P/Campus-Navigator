@@ -10,6 +10,32 @@ window.addEventListener("load", () => {
     }
   }, 3000);
 });
+// ==========================================
+// LEAFLET ROTATED MARKER PLUGIN
+// ==========================================
+(function () {
+  // Save the original _setPos method
+  const originalSetPos = L.Marker.prototype._setPos;
+
+  const MarkerMethods = {
+    _setPos: function (pos) {
+      // Call the original method
+      originalSetPos.call(this, pos);
+
+      // Apply rotation if set
+      if (this.options.rotationAngle) {
+        this._icon.style.transformOrigin = this.options.rotationOrigin || 'center center';
+        this._icon.style.transform += ' rotate(' + this.options.rotationAngle + 'deg)';
+      }
+    },
+    setRotationAngle: function (angle) {
+      this.options.rotationAngle = angle;
+      this.update();
+      return this;
+    }
+  };
+  L.Marker.include(MarkerMethods);
+})();
 // ---------------- ROUTING UTILS (GLOBAL) ----------------
 let navigationRoutePoints = [];
 let routeProgressIndex = 0;
@@ -312,14 +338,21 @@ function updateRouteProgress() {
 function calculateRemainingDistance() {
   if (!activeRoutePoints || activeRoutePoints.length === 0) return 0;
 
-  let distance = 0;
-  // Sum distance from the NEXT node to the end
-  for (let i = activeRouteIndex; i < activeRoutePoints.length - 1; i++) {
+  let totalDist = 0;
+
+  // 1. Distance from user to the CURRENT target node
+  const nextTargetPt = activeRoutePoints[activeRouteIndex + 1];
+  if (nextTargetPt) {
+    totalDist += userCurrentLocation.distanceTo(L.latLng(nextTargetPt.lat, nextTargetPt.lng));
+  }
+
+  // 2. Sum distance for all REMAINING segments
+  for (let i = activeRouteIndex + 1; i < activeRoutePoints.length - 1; i++) {
     const p1 = L.latLng(activeRoutePoints[i].lat, activeRoutePoints[i].lng);
     const p2 = L.latLng(activeRoutePoints[i + 1].lat, activeRoutePoints[i + 1].lng);
-    distance += p1.distanceTo(p2);
+    totalDist += p1.distanceTo(p2);
   }
-  return distance;
+  return totalDist;
 }
 
 // 3. MAIN WRAPPER (Easy to use)
@@ -795,18 +828,17 @@ function createUserLocationMarker() {
     map.removeLayer(userAccuracyCircle);
   }
 
-  // 🆕 Navigation Mode: Show prominent arrow instead of dot
   const isNavMode = isNavigating;
 
   const userIcon = L.divIcon({
     className: 'user-location-marker',
     html: isNavMode ? `
       <div class="nav-arrow-marker">
-        <div class="arrow-pointer"></div>
+        <div class="arrow-chevron"></div>
       </div>
     ` : `
-      <div class="user-arrow" id="userHeadingArrow"></div>
       <div class="user-dot">
+        <div class="dot-inner"></div>
         <div class="pulse-ring"></div>
       </div>
     `,
@@ -814,17 +846,21 @@ function createUserLocationMarker() {
     iconAnchor: isNavMode ? [25, 25] : [20, 20]
   });
 
-  // 🆕 Fix: Persist location if it exists
   const initialLat = (userCurrentLocation) ? userCurrentLocation.lat : 12.923163;
   const initialLng = (userCurrentLocation) ? userCurrentLocation.lng : 80.120584;
 
   userLocationMarker = L.marker([initialLat, initialLng], {
     icon: userIcon,
     zIndexOffset: 2000,
-    draggable: DEMO_MODE // 🆕 Enable dragging only in demo mode
+    draggable: DEMO_MODE,
+    rotationAngle: 0,
+    rotationOrigin: 'center center'
   });
 
-  // 🆕 USER REQUEST: DRAG LOGIC FOR TESTING
+  if (isNavMode && currentHeading) {
+    userLocationMarker.setRotationAngle(currentHeading);
+  }
+
   userLocationMarker.on('dragend', (e) => {
     if (!DEMO_MODE) return;
     const { lat, lng } = e.target.getLatLng();
@@ -832,7 +868,6 @@ function createUserLocationMarker() {
     updateUserLocation(lat, lng, 10);
   });
 
-  // Ensure current location object is set if it was null (first run)
   if (!userCurrentLocation) {
     userCurrentLocation = L.latLng(initialLat, initialLng);
   }
@@ -975,8 +1010,26 @@ function resumeNavigation() {
 }
 
 function endNavigation() {
+  // Reset map view state
+  isNavigating = false;
+  isPaused = false;
+
+  // Clear route visuals
+  if (currentRouteLayers) currentRouteLayers.clearLayers();
+  if (navMarkers) navMarkers.clearLayers();
+
+  // Reset rotation
+  updateMapRotation(0);
+  lastRotationUpdate = 0;
+
   // Use the existing closeInfoPanel logic which already handles cleanup
   closeInfoPanel();
+
+  // Ensure map fills container after UI transitions
+  setTimeout(() => {
+    if (map) map.invalidateSize();
+  }, 400);
+
   console.log("❌ Navigation Ended");
 }
 
@@ -1012,33 +1065,25 @@ function updateUserLocation(lat, lng, accuracy) {
   } else {
     userAccuracyCircle = L.circle(userCurrentLocation, {
       radius: accuracy,
-      color: '#4A90E2',
-      fillColor: '#4A90E2',
+      color: '#4285F4',
+      fillColor: '#4285F4',
       fillOpacity: 0.1,
       weight: 1,
       opacity: 0.3
     }).addTo(map);
   }
 
-  // 🆕 Update Heading and Map Rotation
+  // 🆕 Update Heading and Marker Rotation (Google Maps Style)
   if (previousUserLocation && userCurrentLocation && !userCurrentLocation.equals(previousUserLocation)) {
     const newHeading = getBearing(previousUserLocation, userCurrentLocation);
     currentHeading = newHeading;
 
-    // Rotate User Arrow (Marker local rotation)
-    const arrow = document.getElementById("userHeadingArrow");
-    if (arrow) {
-      // If map is rotating, arrow should always point "Up" relative to map
-      // But we rotate the WHOLE MAP, so arrow stays at 0 relative to marker div
-      arrow.style.transform = `translateX(-50%) rotate(0deg)`;
-    }
-
-    // 🆕 Map Rotation (Heading-Up Mode)
+    // Rotate marker, keep map North-Up
     if (isNavigating && !isPaused) {
-      if (Math.abs(currentHeading - lastRotationUpdate) > ROTATION_THRESHOLD) {
-        updateMapRotation(currentHeading);
-        lastRotationUpdate = currentHeading;
+      if (userLocationMarker && userLocationMarker.setRotationAngle) {
+        userLocationMarker.setRotationAngle(currentHeading);
       }
+      updateMapRotation(0); // Keep map upright
     }
   }
 
@@ -1124,14 +1169,54 @@ function getClosestPointOnSegment(p, a, b) {
 function updateMapRotation(heading) {
   const mapContainer = document.getElementById("map");
   if (!mapContainer) return;
-  // Use CSS transform on the entire map container for full rotation
-  // We subtract heading to make "Up" the direction of movement
-  mapContainer.style.transition = "transform 0.8s cubic-bezier(0.4, 0, 0.2, 1)";
-  mapContainer.style.transform = `rotate(${-heading}deg)`;
 
-  // 🆕 We must counter-rotate all fixed UI elements if they are inside the map container
-  // In our case, many are outside. But we might need to counter-rotate labels/popups if needed.
-  // For now, let's keep it simple.
+  // Faster transition for real-time tracking, slower for resets
+  const isReset = heading === 0;
+  mapContainer.style.transition = isReset
+    ? "transform 0.8s cubic-bezier(0.4, 0, 0.2, 1)"
+    : "transform 0.5s cubic-bezier(0.1, 0, 0.3, 1)"; // Sharper start for updates
+
+  mapContainer.style.transform = `rotate(${-heading}deg)`;
+}
+
+// 🆕 Intelligent Rotation Clamping: Straightens map near campus bounds
+function getClampedRotation(heading, location) {
+  if (!campusBound) return heading;
+
+  // 1. Calculate distance to nearest boundary in meters
+  const lat = location.lat;
+  const lng = location.lng;
+  const sw = campusBound.getSouthWest();
+  const ne = campusBound.getNorthEast();
+
+  const distToN = Math.abs(lat - ne.lat) * 111320;
+  const distToS = Math.abs(lat - sw.lat) * 111320;
+  const distToE = Math.abs(lng - ne.lng) * 111320 * Math.cos(lat * Math.PI / 180);
+  const distToW = Math.abs(lng - sw.lng) * 111320 * Math.cos(lat * Math.PI / 180);
+
+  const minDist = Math.min(distToN, distToS, distToE, distToW);
+
+  // 2. Linear Ramp: Increased thresholds to ensure it stays upright near edges
+  const STRAIGHTEN_START = 80; // Start fading out rotation earlier (80m)
+  const STRAIGHTEN_END = 25;   // Fully North-Up at 25m
+
+  let targetHeading = heading;
+
+  if (minDist <= STRAIGHTEN_END) {
+    targetHeading = 0;
+  } else if (minDist < STRAIGHTEN_START) {
+    const factor = (minDist - STRAIGHTEN_END) / (STRAIGHTEN_START - STRAIGHTEN_END);
+    const smoothFactor = factor * factor; // Quadratic ease-in
+    targetHeading = heading * smoothFactor;
+  }
+
+  // 3. Rotation Clamping (Dead-zone): Don't rotate if heading is near North
+  // This makes the map "stay upright when moving straight" if moving roughly North
+  if (Math.abs(targetHeading) < 5 || Math.abs(targetHeading - 360) < 5) {
+    return 0;
+  }
+
+  return targetHeading;
 }
 
 function updateDynamicZoom() {
@@ -1417,37 +1502,13 @@ function getBearing(start, end) {
 function centerMapOnUser(animated = true) {
   if (!userCurrentLocation) return;
 
-  let targetPoint = userCurrentLocation;
-
-  // 🆕 Camera Offset Logic (Lower-Middle)
-  if (isNavigating && !isPaused) {
-    // We want the user to be at ~30% from the bottom of the map.
-    // Since the map is rotated, "Up" is currentHeading.
-    // We need to shift the map center "Ahead" of the user.
-    const mapHeight = map.getSize().y;
-    const offsetPixels = mapHeight * (0.5 - CAMERA_OFFSET_PERCENT); // Distance to shift center forward
-
-    // Project user to pixels
-    const userPx = map.project(userCurrentLocation, map.getZoom());
-
-    // Offset in the direction of 'currentHeading'
-    const angleRad = (currentHeading - 90) * (Math.PI / 180); // Adjust to Cartesian
-    const offsetPx = L.point(
-      Math.cos(angleRad) * offsetPixels,
-      Math.sin(angleRad) * offsetPixels
-    );
-
-    const targetPx = userPx.add(offsetPx);
-    targetPoint = map.unproject(targetPx, map.getZoom());
-  }
-
   if (animated) {
-    map.flyTo(targetPoint, map.getZoom(), {
+    map.flyTo(userCurrentLocation, map.getZoom(), {
       duration: 0.8,
       easeLinearity: 0.25
     });
   } else {
-    map.panTo(targetPoint);
+    map.panTo(userCurrentLocation);
   }
 }
 
