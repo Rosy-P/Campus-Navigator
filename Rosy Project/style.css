@@ -2432,3 +2432,36 @@ body.light-mode .dot-inner {
     opacity: 0;
   }
 }
+
+/* 🆕 Navigation Mode: Prominent Arrow Marker */
+.nav-arrow-marker {
+  position: relative;
+  width: 50px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.arrow-pointer {
+  width: 0;
+  height: 0;
+  border-left: 18px solid transparent;
+  border-right: 18px solid transparent;
+  border-bottom: 35px solid #2E7DFF;
+  filter: drop-shadow(0 2px 8px rgba(46, 125, 255, 0.6));
+  position: relative;
+  z-index: 100;
+}
+
+.arrow-pointer::after {
+  content: '';
+  position: absolute;
+  top: 8px;
+  left: -12px;
+  width: 0;
+  height: 0;
+  border-left: 12px solid transparent;
+  border-right: 12px solid transparent;
+  border-bottom: 20px solid rgba(255, 255, 255, 0.3);
+}
