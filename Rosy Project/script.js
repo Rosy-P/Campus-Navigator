@@ -907,6 +907,10 @@ function startGPSTracking() {
   console.log("📡 GPS tracking active");
 }
 
+let animationFrameId = null;
+let lastFrameTime = 0;
+let currentInterpolationT = 0; // 0 to 1 between nodes
+
 function onLocationSuccess(position) {
   const lat = position.coords.latitude;
   const lng = position.coords.longitude;
@@ -933,8 +937,7 @@ function onLocationError(error) {
 }
 
 function startDemoTracking() {
-  // If no route, just show marker at current/default location (Idle Mode)
-  if (!navigationRoutePoints || navigationRoutePoints.length === 0) {
+  if (!navigationRoutePoints || navigationRoutePoints.length < 2) {
     console.log("📍 Demo Mode: Idle (No Route)");
     const lat = userCurrentLocation ? userCurrentLocation.lat : 12.923163;
     const lng = userCurrentLocation ? userCurrentLocation.lng : 80.120584;
@@ -942,27 +945,60 @@ function startDemoTracking() {
     return;
   }
 
+  console.log("🎬 Starting Smooth Demo Tracking...");
   routeProgressIndex = 0;
+  currentInterpolationT = 0;
+  lastFrameTime = performance.now();
 
-  // 🆕 Execute Step 0 immediately (Teleport to start)
-  const startPt = navigationRoutePoints[0];
-  activeRouteIndex = 0;
-  updateUserLocation(startPt.lat, startPt.lng, 10);
-  routeProgressIndex++;
+  function animate(currentTime) {
+    if (isPaused) {
+      lastFrameTime = currentTime;
+      animationFrameId = requestAnimationFrame(animate);
+      return;
+    }
 
-  locationUpdateInterval = setInterval(() => {
-    if (routeProgressIndex >= navigationRoutePoints.length) {
+    const deltaTime = currentTime - lastFrameTime;
+    lastFrameTime = currentTime;
+
+    // Movement speed: ~3 seconds per 10 meters (adjustable)
+    const p1 = navigationRoutePoints[routeProgressIndex];
+    const p2 = navigationRoutePoints[routeProgressIndex + 1];
+
+    if (!p2) {
       console.log("🏁 Destination reached");
       stopLocationTracking();
       return;
     }
 
-    const point = navigationRoutePoints[routeProgressIndex];
-    activeRouteIndex = routeProgressIndex; // Sync for distance calculation
-    updateUserLocation(point.lat, point.lng, 10);
+    const segmentDist = L.latLng(p1.lat, p1.lng).distanceTo(L.latLng(p2.lat, p2.lng));
+    const speed = 4.5; // meters per second (~walking speed)
+    const step = (speed * (deltaTime / 1000)) / segmentDist;
 
-    routeProgressIndex++;
-  }, 3500); // Slower speed (was 2000)
+    currentInterpolationT += step;
+
+    if (currentInterpolationT >= 1) {
+      currentInterpolationT = 0;
+      routeProgressIndex++;
+      activeRouteIndex = routeProgressIndex;
+
+      if (routeProgressIndex >= navigationRoutePoints.length - 1) {
+        updateUserLocation(p2.lat, p2.lng, 10);
+        console.log("🏁 Destination reached");
+        stopLocationTracking();
+        return;
+      }
+    }
+
+    // Interpolate position
+    const interpolatedLat = p1.lat + (p2.lat - p1.lat) * currentInterpolationT;
+    const interpolatedLng = p1.lng + (p2.lng - p1.lng) * currentInterpolationT;
+
+    updateUserLocation(interpolatedLat, interpolatedLng, 10);
+
+    animationFrameId = requestAnimationFrame(animate);
+  }
+
+  animationFrameId = requestAnimationFrame(animate);
 }
 
 function pauseNavigation() {
@@ -978,9 +1014,9 @@ function pauseNavigation() {
   }
 
   // Freeze demo movement
-  if (locationUpdateInterval) {
-    clearInterval(locationUpdateInterval);
-    locationUpdateInterval = null;
+  if (animationFrameId) {
+    cancelAnimationFrame(animationFrameId);
+    animationFrameId = null;
   }
   console.log("⏸ Navigation Paused");
 }
@@ -999,6 +1035,7 @@ function resumeNavigation() {
 
   // Resume movement (Demo)
   if (DEMO_MODE) {
+    // Current progress state is preserved in routeProgressIndex and currentInterpolationT
     startDemoTracking();
   } else {
     startGPSTracking();
@@ -1078,12 +1115,16 @@ function updateUserLocation(lat, lng, accuracy) {
     const newHeading = getBearing(previousUserLocation, userCurrentLocation);
     currentHeading = newHeading;
 
-    // Rotate marker, keep map North-Up
+    // Rotate marker, keep map Dynamic (Google Maps Style)
     if (isNavigating && !isPaused) {
       if (userLocationMarker && userLocationMarker.setRotationAngle) {
+        // Marker always shows real movement direction
         userLocationMarker.setRotationAngle(currentHeading);
       }
-      updateMapRotation(0); // Keep map upright
+
+      // Map rotation is conditional (3-Mode Logic)
+      const allowedMapRotation = getClampedRotation(currentHeading, userCurrentLocation);
+      updateMapRotation(allowedMapRotation);
     }
   }
 
@@ -1179,7 +1220,7 @@ function updateMapRotation(heading) {
   mapContainer.style.transform = `rotate(${-heading}deg)`;
 }
 
-// 🆕 Intelligent Rotation Clamping: Straightens map near campus bounds
+// 🆕 Dynamic Rotation Controller: Implements the 3-Mode Logic
 function getClampedRotation(heading, location) {
   if (!campusBound) return heading;
 
@@ -1196,23 +1237,29 @@ function getClampedRotation(heading, location) {
 
   const minDist = Math.min(distToN, distToS, distToE, distToW);
 
-  // 2. Linear Ramp: Increased thresholds to ensure it stays upright near edges
-  const STRAIGHTEN_START = 80; // Start fading out rotation earlier (80m)
-  const STRAIGHTEN_END = 25;   // Fully North-Up at 25m
+  // 🆕 3-MODE LOGIC THRESHOLDS
+  const STRAIGHTEN_START = 35; // 🟡 Mode 2: Start gradually reducing rotation (35m)
+  const STRAIGHTEN_END = 15;   // 🔴 Mode 3: Fully Lock North-Up (15m)
 
   let targetHeading = heading;
 
   if (minDist <= STRAIGHTEN_END) {
+    // 🔴 Mode 3: Boundary Lock
+    console.log("🔴 Mode 3: Boundary Lock (North-Up)");
     targetHeading = 0;
   } else if (minDist < STRAIGHTEN_START) {
+    // 🟡 Mode 2: Boundary Approach (Interpolation)
     const factor = (minDist - STRAIGHTEN_END) / (STRAIGHTEN_START - STRAIGHTEN_END);
-    const smoothFactor = factor * factor; // Quadratic ease-in
+    const smoothFactor = Math.sin((factor * Math.PI) / 2); // Sinusoidal ease-out
+    console.log(`🟡 Mode 2: Approach (Factor: ${smoothFactor.toFixed(2)})`);
     targetHeading = heading * smoothFactor;
+  } else {
+    // 🟢 Mode 1: Free Navigation
+    // No specific logging to avoid spam
   }
 
-  // 3. Rotation Clamping (Dead-zone): Don't rotate if heading is near North
-  // This makes the map "stay upright when moving straight" if moving roughly North
-  if (Math.abs(targetHeading) < 5 || Math.abs(targetHeading - 360) < 5) {
+  // Dead-zone: Don't rotate if heading is near North
+  if (Math.abs(targetHeading) < 3 || Math.abs(targetHeading - 360) < 3) {
     return 0;
   }
 
@@ -1502,13 +1549,27 @@ function getBearing(start, end) {
 function centerMapOnUser(animated = true) {
   if (!userCurrentLocation) return;
 
+  // 🆕 Google Maps behavior: Offset the camera slightly ahead of the user
+  // This keeps the user "slightly below center" for better forward visibility.
+  const zoom = map.getZoom();
+  const offsetDistance = 250 / Math.pow(2, zoom - 18); // Adaptive offset based on zoom
+
+  // Calculate point "ahead" based on current heading
+  const angleRad = (currentHeading * Math.PI) / 180;
+  const aheadLat = userCurrentLocation.lat + (offsetDistance / 111320) * Math.cos(angleRad);
+  const aheadLng = userCurrentLocation.lng + (offsetDistance / (111320 * Math.cos(userCurrentLocation.lat * Math.PI / 180))) * Math.sin(angleRad);
+
+  const cameraTarget = L.latLng(aheadLat, aheadLng);
+
   if (animated) {
-    map.flyTo(userCurrentLocation, map.getZoom(), {
-      duration: 0.8,
-      easeLinearity: 0.25
+    // Smoother transition for constant updates
+    map.panTo(cameraTarget, {
+      animate: true,
+      duration: 0.5,
+      noMoveStart: true
     });
   } else {
-    map.panTo(userCurrentLocation);
+    map.setView(cameraTarget, map.getZoom(), { animate: false });
   }
 }
 
@@ -1523,6 +1584,11 @@ function stopLocationTracking(keepMarker = false) {
   if (watchId !== null) {
     navigator.geolocation.clearWatch(watchId);
     watchId = null;
+  }
+
+  if (animationFrameId) {
+    cancelAnimationFrame(animationFrameId);
+    animationFrameId = null;
   }
 
   if (locationUpdateInterval) {
